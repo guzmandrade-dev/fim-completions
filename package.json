@@ -1,0 +1,51 @@
+{
+  "name": "fim-completions",
+  "displayName": "FIM Completions",
+  "version": "0.1.0",
+  "description": "Minimal inline code completions using a custom FIM model via /api/generate",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Machine Learning", "Snippets"],
+  "keywords": ["ai", "autocomplete", "completion", "fim", "inline", "llm"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./dist/extension.js",
+  "scripts": {
+    "compile": "tsup",
+    "watch": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.90.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  },
+  "contributes": {
+    "configuration": {
+      "title": "FIM Completions",
+      "properties": {
+        "fim.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable inline FIM completions."
+        },
+        "fim.model": {
+          "type": "string",
+          "default": "",
+          "description": "Model name to use for completions (e.g., deepseek-coder:1.3b, qwen2.5-coder:1.5b). Leave empty to disable."
+        },
+        "fim.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:11434",
+          "description": "Base URL of the generate API endpoint."
+        },
+        "fim.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for authenticated requests. Sent as Bearer token in the Authorization header."
+        }
+      }
+    }
+  }
+}
