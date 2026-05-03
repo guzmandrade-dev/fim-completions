@@ -1,0 +1,32 @@
+{{- if .Messages }}
+{{- if or .System .Tools }}<|im_start|>system
+{{- if .System }}
+{{ .System }}
+{{- end }}
+{{- if .Tools }}
+
+# Tools
+You may call one or more functions to assist with the user query.
+You are provided with function signatures within:
+
+{{- range .Tools }}
+{"type": "function", "function": {{ .Function }}}
+{{- end }}
+
+For each function call, return a json object with function name and arguments within with NO other text.
+
+{"name":<function_name>, "arguments":<args_json_object>}
+{{- end }}
+{{- end }}
+{{- range .Messages }}
+{{- if eq .Role "user" }}<|im_start|>user
+{{ .Content }}
+{{- else if eq .Role "assistant" }}<|im_start|>assistant
+{{ .Content }}
+{{- else if eq .Role "tool" }}<|im_start|>tool
+{{ .Content }}
+{{- end }}
+{{- end }}<|im_start|>assistant
+{{- else }}
+<|fim_prefix|>{{ .Prompt }}<|fim_suffix|>{{ .Suffix }}<|fim_middle|>
+{{- end }}

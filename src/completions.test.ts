@@ -1,10 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setMockConfig } from './test/vscode.mock.js';
 import { FimCompletionProvider } from './completions.js';
+import { fetchGenerate } from './client.js';
+
+vi.mock('./client.js', () => ({
+  fetchGenerate: vi.fn(),
+}));
 
 describe('FimCompletionProvider', () => {
   beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn());
+    vi.mocked(fetchGenerate).mockResolvedValue({ response: 'const x = 1;' });
   });
 
   afterEach(() => {
@@ -82,12 +87,6 @@ describe('FimCompletionProvider', () => {
   });
 
   it('calls fetchGenerate with correct prefix and suffix', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ response: 'const x = 1;' }),
-    });
-    vi.stubGlobal('fetch', fetchMock);
-
     setMockConfig({ enabled: true, model: 'qwen2.5-coder:1.5b' });
     const provider = new FimCompletionProvider('http://localhost:11434', 'qwen2.5-coder:1.5b');
 
@@ -100,25 +99,23 @@ describe('FimCompletionProvider', () => {
       makeToken() as any,
     );
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [, init] = fetchMock.mock.calls[0];
-    const body = JSON.parse(init.body);
-    expect(body.model).toBe('qwen2.5-coder:1.5b');
-    expect(body.prompt).toBe('hello');
-    expect(body.suffix).toBe(' world');
-    expect(body.stream).toBe(false);
+    expect(fetchGenerate).toHaveBeenCalledTimes(1);
+    expect(fetchGenerate).toHaveBeenCalledWith(
+      'http://localhost:11434',
+      expect.objectContaining({
+        model: 'qwen2.5-coder:1.5b',
+        prompt: 'hello',
+        suffix: ' world',
+        stream: false,
+      }),
+      undefined,
+    );
 
     expect(result).toHaveLength(1);
     expect((result![0] as any).insertText).toBe('const x = 1;');
   });
 
-  it('sends Authorization header when apiKey is set', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ response: 'const x = 1;' }),
-    });
-    vi.stubGlobal('fetch', fetchMock);
-
+  it('sends apiKey to fetchGenerate when set', async () => {
     setMockConfig({ enabled: true, model: 'qwen2.5-coder:1.5b', apiKey: 'secret-token' });
     const provider = new FimCompletionProvider('http://localhost:11434', 'qwen2.5-coder:1.5b');
 
@@ -129,12 +126,33 @@ describe('FimCompletionProvider', () => {
       makeToken() as any,
     );
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [, init] = fetchMock.mock.calls[0];
-    expect(init.headers).toMatchObject({
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer secret-token',
-    });
+    expect(fetchGenerate).toHaveBeenCalledTimes(1);
+    expect(fetchGenerate).toHaveBeenCalledWith(
+      'http://localhost:11434',
+      expect.any(Object),
+      'secret-token',
+    );
+  });
+
+  it('uses custom maxTokens when set', async () => {
+    setMockConfig({ enabled: true, model: 'qwen2.5-coder:1.5b', maxTokens: 256 });
+    const provider = new FimCompletionProvider('http://localhost:11434', 'qwen2.5-coder:1.5b');
+
+    await provider.provideInlineCompletionItems(
+      makeDocument('hello', 5) as any,
+      {} as any,
+      {} as any,
+      makeToken() as any,
+    );
+
+    expect(fetchGenerate).toHaveBeenCalledTimes(1);
+    expect(fetchGenerate).toHaveBeenCalledWith(
+      'http://localhost:11434',
+      expect.objectContaining({
+        options: expect.objectContaining({ num_predict: 256 }),
+      }),
+      undefined,
+    );
   });
 
   it('returns null when token is already cancelled', async () => {
@@ -151,7 +169,7 @@ describe('FimCompletionProvider', () => {
   });
 
   it('returns null on fetch error', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')));
+    vi.mocked(fetchGenerate).mockRejectedValue(new Error('ECONNREFUSED'));
 
     setMockConfig({ enabled: true, model: 'qwen2.5-coder:1.5b' });
     const provider = new FimCompletionProvider('http://localhost:11434', 'qwen2.5-coder:1.5b');

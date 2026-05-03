@@ -3,10 +3,24 @@
   "displayName": "FIM Completions",
   "version": "0.1.0",
   "description": "Minimal inline code completions using a custom FIM model via /api/generate",
-  "engines": { "vscode": "^1.90.0" },
-  "categories": ["Machine Learning", "Snippets"],
-  "keywords": ["ai", "autocomplete", "completion", "fim", "inline", "llm"],
-  "activationEvents": ["onStartupFinished"],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Machine Learning",
+    "Snippets"
+  ],
+  "keywords": [
+    "ai",
+    "autocomplete",
+    "completion",
+    "fim",
+    "inline",
+    "llm"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./dist/extension.js",
   "scripts": {
     "compile": "tsup",
@@ -44,8 +58,16 @@
           "type": "string",
           "default": "",
           "description": "API key for authenticated requests. Sent as Bearer token in the Authorization header."
+        },
+        "fim.maxTokens": {
+          "type": "number",
+          "default": 128,
+          "description": "Maximum number of tokens to generate per completion."
         }
       }
     }
+  },
+  "dependencies": {
+    "ollama": "^0.6.3"
   }
 }

@@ -23,7 +23,7 @@ export class FimCompletionProvider implements InlineCompletionItemProvider {
     const enabled = getSetting<boolean>('enabled', true);
     if (!enabled) return null;
 
-    const model = getSetting<string>('model', '')?.trim() ?? '';
+    const model = this.model.trim();
     if (!model) return null;
 
     const offset = document.offsetAt(position);
@@ -35,6 +35,7 @@ export class FimCompletionProvider implements InlineCompletionItemProvider {
     const suffix = document.getText(new Range(position, document.positionAt(suffixEnd)));
 
     const apiKey = getSetting<string>('apiKey', '')?.trim() ?? '';
+    const maxTokens = getSetting<number>('maxTokens', 128);
 
     try {
       const response = await fetchGenerate(
@@ -44,7 +45,7 @@ export class FimCompletionProvider implements InlineCompletionItemProvider {
           prompt: prefix,
           suffix: suffix.length > 0 ? suffix : undefined,
           stream: false,
-          options: { num_predict: 128, temperature: 0.1, stop: ['\n\n'] },
+          options: { num_predict: maxTokens, temperature: 0.1, stop: ['\n\n'] },
         },
         apiKey || undefined,
       );

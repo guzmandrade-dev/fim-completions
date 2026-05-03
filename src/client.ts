@@ -1,3 +1,5 @@
+import { Ollama } from 'ollama';
+
 export interface GenerateRequest {
   model: string;
   prompt: string;
@@ -19,17 +21,29 @@ export async function fetchGenerate(
   req: GenerateRequest,
   apiKey?: string,
 ): Promise<GenerateResponse> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = {};
   if (apiKey) {
     headers['Authorization'] = `Bearer ${apiKey}`;
   }
-  const res = await fetch(`${baseUrl}/api/generate`, {
-    method: 'POST',
+
+  const host = baseUrl.trim();
+  console.log(`[FIM] Ollama host: ${host}`);
+
+  const ollama = new Ollama({
+    host,
     headers,
-    body: JSON.stringify(req),
   });
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
-  }
-  return res.json();
+
+  const generateReq = {
+    model: req.model,
+    prompt: req.prompt,
+    suffix: req.suffix,
+    stream: false,
+    options: req.options,
+  };
+  console.log('[FIM] generate request:', JSON.stringify(generateReq, null, 2));
+
+  const response = await ollama.generate(generateReq);
+
+  return { response: response.response };
 }
