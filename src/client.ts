@@ -38,7 +38,7 @@ export async function fetchGenerate(
     model: req.model,
     prompt: req.prompt,
     suffix: req.suffix,
-    stream: false,
+    stream: false as const,
     options: req.options,
   };
   console.log('[FIM] generate request:', JSON.stringify(generateReq, null, 2));
