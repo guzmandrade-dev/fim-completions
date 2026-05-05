@@ -23,9 +23,6 @@ export class FimCompletionProvider implements InlineCompletionItemProvider {
     const enabled = getSetting<boolean>('enabled', true);
     if (!enabled) return null;
 
-    const model = this.model.trim();
-    if (!model) return null;
-
     const offset = document.offsetAt(position);
     const prefixStart = Math.max(0, offset - MAX_PREFIX_CHARS);
     const prefix = document.getText(new Range(document.positionAt(prefixStart), position));
@@ -34,18 +31,40 @@ export class FimCompletionProvider implements InlineCompletionItemProvider {
     const suffixEnd = Math.min(docEnd, offset + MAX_SUFFIX_CHARS);
     const suffix = document.getText(new Range(position, document.positionAt(suffixEnd)));
 
-    const apiKey = getSetting<string>('apiKey', '')?.trim() ?? '';
+    // Skip completions when there's insufficient context
+    const MIN_PREFIX_CHARS = 10;
+    const trimmedPrefix = prefix.trim();
+    const trimmedSuffix = suffix.trim();
+
+    // Don't complete if prefix is too short and there's no suffix (empty/early file)
+    if (trimmedPrefix.length < MIN_PREFIX_CHARS && trimmedSuffix.length === 0) {
+      return null;
+    }
+
+    // Don't complete if we're at the very end of an empty/new file
+    if (trimmedPrefix.length === 0 && trimmedSuffix.length === 0) {
+      return null;
+    }
+
+    // Don't complete if current line only has whitespace and nothing ahead (just pressed ENTER + SPACE)
+    // Get text from start of line to cursor
+    const lineStart = new Position(position.line, 0);
+    const linePrefix = document.getText(new Range(lineStart, position));
+    if (linePrefix.trim().length === 0 && trimmedSuffix.length === 0) {
+      return null;
+    }
+
     const maxTokens = getSetting<number>('maxTokens', 128);
 
     try {
+      const apiKey = getSetting<string>('apiKey', '')?.trim() ?? '';
       const response = await fetchGenerate(
         this.apiUrl,
         {
-          model,
-          prompt: prefix,
+          model: this.model,
+          prefix,
           suffix: suffix.length > 0 ? suffix : undefined,
-          stream: false,
-          options: { num_predict: maxTokens, temperature: 0.1, stop: ['\n\n'] },
+          options: { num_predict: maxTokens, temperature: 0.1 },
         },
         apiKey || undefined,
       );

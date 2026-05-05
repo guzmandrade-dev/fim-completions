@@ -42,22 +42,17 @@
         "fim.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Enable inline FIM completions."
-        },
-        "fim.model": {
-          "type": "string",
-          "default": "",
-          "description": "Model name to use for completions (e.g., deepseek-coder:1.3b, qwen2.5-coder:1.5b). Leave empty to disable."
+          "description": "Enable inline FIM completions using rnj-1 model."
         },
         "fim.apiUrl": {
           "type": "string",
           "default": "http://localhost:11434",
-          "description": "Base URL of the generate API endpoint."
+          "description": "Base URL of the Ollama API endpoint."
         },
         "fim.apiKey": {
           "type": "string",
           "default": "",
-          "description": "API key for authenticated requests. Sent as Bearer token in the Authorization header."
+          "description": "API key for authenticated requests (required for Ollama cloud services)."
         },
         "fim.maxTokens": {
           "type": "number",

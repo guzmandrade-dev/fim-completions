@@ -1,26 +1,35 @@
 # FIM Completions
 
-A minimal VS Code extension that provides inline (ghost-text) code completions using a custom Fill-In-the-Middle (FIM) model. It leverages VS Code's native `InlineCompletionItemProvider` API — the same mechanism GitHub Copilot uses — but sends requests to a user-configurable `/api/generate`-style endpoint.
+A minimal VS Code extension that provides inline (ghost-text) code completions using the **rnj-1** Fill-In-the-Middle (FIM) model. It leverages VS Code's native `InlineCompletionItemProvider` API — the same mechanism GitHub Copilot uses.
 
 ## Features
 
-- **Ghost-text completions** as you type, powered by any FIM-compatible model.
-- **Backend-agnostic**: works with Ollama, llama.cpp, vLLM, or any server implementing a `/api/generate` endpoint.
-- **Minimal configuration**: just three settings (`enabled`, `model`, `apiUrl`).
+- **Ghost-text completions** as you type, powered by rnj-1's strong FIM capabilities (86.21% on HE-FIM-Python).
+- **FIM-optimized**: Uses rnj-1's native FIM tokens (`<|pre_fim|>`, `<|suf_fim|>`, `<|mid_fim|>`).
+- **Minimal configuration**: just set your Ollama URL.
 - **Debounced, cancellable requests** to avoid hammering your backend.
 
 ## Requirements
 
 - VS Code 1.90+
-- A running LLM backend that exposes a `/api/generate` endpoint accepting `{ model, prompt, suffix?, stream, options }` and returning `{ response: string }`.
+- Ollama running with the `rnj-1:8b-cloud` model pulled
+
+## Setup
+
+1. Install Ollama: https://ollama.com
+2. Pull the rnj-1 model:
+   ```bash
+   ollama pull rnj-1:8b-cloud
+   ```
+3. Start Ollama (usually runs on `http://localhost:11434`)
 
 ## Extension Settings
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `fim.enabled` | `boolean` | `true` | Enable/disable inline completions. |
-| `fim.model` | `string` | `""` | Model name to use (e.g. `deepseek-coder:1.3b`, `qwen2.5-coder:1.5b`). Leave empty to disable. |
-| `fim.apiUrl` | `string` | `http://localhost:11434` | Base URL of the generate API endpoint. |
+| `fim.apiUrl` | `string` | `http://localhost:11434` | Base URL of the Ollama API endpoint. |
+| `fim.maxTokens` | `number` | `128` | Maximum number of tokens to generate per completion. |
 
 ## Build
 
