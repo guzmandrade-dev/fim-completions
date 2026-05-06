@@ -1,3 +1,3 @@
-import { vi } from 'vitest';
+import { vi } from "vitest";
 
-vi.stubGlobal('fetch', vi.fn());
+vi.stubGlobal("fetch", vi.fn());

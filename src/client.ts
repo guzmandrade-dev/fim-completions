@@ -1,9 +1,12 @@
-import { Ollama } from 'ollama';
+import { Ollama } from "ollama";
 
-export interface GenerateRequest {
+export type FimModelType = "rnj-1" | "deepseek" | "qwen" | "gemma" | "mistral";
+
+interface GenerateRequest {
   model: string;
   prefix: string;
   suffix?: string;
+  modelType?: FimModelType;
   options?: {
     num_predict?: number;
     temperature?: number;
@@ -11,22 +14,83 @@ export interface GenerateRequest {
   };
 }
 
-export interface GenerateResponse {
+interface GenerateResponse {
   response: string;
 }
 
-// FIM tokens for rnj-1 model
-const PRE_FIM = '<|pre_fim|>';
-const SUF_FIM = '<|suf_fim|>';
-const MID_FIM = '<|mid_fim|>';
+// FIM token configurations for different model families
+const FIM_TOKENS: Record<
+  FimModelType,
+  { pre: string; suf: string; mid: string }
+> = {
+  "rnj-1": {
+    pre: "<|pre_fim|>",
+    suf: "<|suf_fim|>",
+    mid: "<|mid_fim|>",
+  },
+  deepseek: {
+    pre: "<|fim_begin|>",
+    suf: "<|fim_hole|>",
+    mid: "<|fim_end|>",
+  },
+  qwen: {
+    pre: "<|fim_prefix|>",
+    suf: "<|fim_suffix|>",
+    mid: "<|fim_middle|>",
+  },
+  gemma: {
+    pre: "<|fim_prefix|>",
+    mid: "<|fim_middle|>",
+    suf: "<|fim_suffix|>",
+  },
+  mistral: {
+    pre: "<|fim_prefix|>",
+    suf: "<|fim_suffix|>",
+    mid: "<|fim_middle|>",
+  },
+};
 
-function buildFimPrompt(prefix: string, suffix?: string): string {
+// Default stop tokens that work across models
+const DEFAULT_STOP_TOKENS = [
+  "\n\n",
+  "```",
+  "<|endoftext|>",
+  "// Note:",
+  "// Notes:",
+  "/* Note:",
+  "/* Notes:",
+  "# Note:",
+  "# Notes:",
+];
+
+function buildFimPrompt(
+  prefix: string,
+  suffix: string | undefined,
+  modelType: FimModelType,
+): string {
+  const tokens = FIM_TOKENS[modelType];
+
+  if (modelType === "gemma") {
+    // Gemma format: <|fim_prefix|>prefix<|fim_middle|>suffix<|fim_suffix|>
+    // The model generates between <|fim_middle|> and <|fim_suffix|>
+    if (suffix && suffix.trim()) {
+      return `${tokens.pre}${prefix}${tokens.mid}${suffix}${tokens.suf}`;
+    }
+    // No suffix provided
+    return `${tokens.pre}${prefix}${tokens.mid}`;
+  }
+
+  // Standard format for rnj-1, deepseek, qwen, mistral: <pre>prefix<suf>suffix<mid>
   if (suffix && suffix.trim()) {
-    // Full FIM format: <|pre_fim|>prefix<|suf_fim|>suffix<|mid_fim|>
-    return `${PRE_FIM}${prefix}${SUF_FIM}${suffix}${MID_FIM}`;
+    return `${tokens.pre}${prefix}${tokens.suf}${suffix}${tokens.mid}`;
   }
   // No suffix provided, just use prefix with mid token
-  return `${PRE_FIM}${prefix}${MID_FIM}`;
+  return `${tokens.pre}${prefix}${tokens.mid}`;
+}
+
+function getModelSpecificStopTokens(modelType: FimModelType): string[] {
+  const tokens = FIM_TOKENS[modelType];
+  return [tokens.pre, tokens.suf, tokens.mid];
 }
 
 export async function fetchGenerate(
@@ -36,7 +100,7 @@ export async function fetchGenerate(
 ): Promise<GenerateResponse> {
   const headers: Record<string, string> = {};
   if (apiKey) {
-    headers['Authorization'] = `Bearer ${apiKey}`;
+    headers["Authorization"] = `Bearer ${apiKey}`;
   }
 
   const host = baseUrl.trim();
@@ -47,8 +111,15 @@ export async function fetchGenerate(
     headers,
   });
 
-  // Build FIM-formatted prompt
-  const prompt = buildFimPrompt(req.prefix, req.suffix);
+  // Use the specified model type or default to rnj-1
+  const modelType = req.modelType ?? "rnj-1";
+
+  // Build FIM-formatted prompt based on model type
+  const prompt = buildFimPrompt(req.prefix, req.suffix, modelType);
+
+  // Combine default stop tokens with model-specific tokens
+  const modelStopTokens = getModelSpecificStopTokens(modelType);
+  const stopTokens = [...modelStopTokens, ...DEFAULT_STOP_TOKENS];
 
   const generateReq = {
     model: req.model,
@@ -56,23 +127,10 @@ export async function fetchGenerate(
     stream: false as const,
     options: {
       ...req.options,
-      stop: [
-        '\n\n',
-        '<|suf_fim|>',
-        '<|pre_fim|>',
-        '<|mid_fim|>',
-        '```',
-        '<|endoftext|>',
-        '// Note:',
-        '// Notes:',
-        '/* Note:',
-        '/* Notes:',
-        '# Note:',
-        '# Notes:',
-      ],
+      stop: stopTokens,
     },
   };
-  console.log('[FIM] generate request:', JSON.stringify(generateReq, null, 2));
+  console.log("[FIM] generate request:", JSON.stringify(generateReq, null, 2));
 
   const response = await ollama.generate(generateReq);
 

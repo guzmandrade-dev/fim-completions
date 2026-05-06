@@ -1,7 +1,7 @@
 {
   "name": "fim-completions",
   "displayName": "FIM Completions",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Minimal inline code completions using a custom FIM model via /api/generate",
   "engines": {
     "vscode": "^1.90.0"
@@ -56,8 +56,26 @@
         },
         "fim.maxTokens": {
           "type": "number",
-          "default": 128,
+          "default": 256,
           "description": "Maximum number of tokens to generate per completion."
+        },
+        "fim.model": {
+          "type": "string",
+          "enum": ["rnj-1", "deepseek", "qwen", "gemma", "mistral"],
+          "enumDescriptions": [
+            "EssentialAI/rnj-1-instruct - Uses <|pre_fim|>prefix<|suf_fim|>suffix<|mid_fim|>",
+            "deepseek-ai/DeepSeek-Coder-V2 - Uses <|fim_begin|>prefix<|fim_hole|>suffix<|fim_end|>",
+            "Qwen/Qwen3-Coder - Uses <|fim_prefix|>prefix<|fim_suffix|>suffix<|fim_middle|>",
+            "Google/Gemma3 - Uses <|fim_prefix|>prefix<|fim_middle|>suffix<|fim_suffix|>",
+            "Mistral/Codestral-Ministral - Uses <|fim_prefix|>prefix<|fim_suffix|>suffix<|fim_middle|>"
+          ],
+          "default": "rnj-1",
+          "description": "FIM model family to use for completions."
+        },
+        "fim.modelId": {
+          "type": "string",
+          "default": "rnj-1:8b-cloud",
+          "description": "The actual model ID to use with the Ollama API (e.g., 'rnj-1:8b-cloud', 'deepseek-coder-v2:lite-instruct')."
         }
       }
     }
