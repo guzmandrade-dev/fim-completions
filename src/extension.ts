@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { FimCompletionProvider } from "./completions.js";
 import { getSetting } from "./settings.js";
+import { setApiKey, clearApiKey } from "./secrets.js";
 import type { FimModelType } from "./client.js";
 
 // Default model configurations
@@ -25,7 +26,12 @@ export function activate(context: vscode.ExtensionContext): void {
 
   if (!enabled) return;
 
-  const provider = new FimCompletionProvider(apiUrl, modelId, modelType);
+  const provider = new FimCompletionProvider(
+    apiUrl ?? "http://localhost:11434",
+    modelId,
+    modelType,
+    context.secrets,
+  );
 
   const disposable = vscode.languages.registerInlineCompletionItemProvider(
     { pattern: "**" },
@@ -33,6 +39,47 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(disposable);
+
+  // Register command to set API key
+  const setApiKeyCommand = vscode.commands.registerCommand(
+    "fim.setApiKey",
+    async () => {
+      const currentEnvKey = process.env.OLLAMA_API_KEY;
+      const promptMessage = currentEnvKey
+        ? "Enter API key for FIM completions (press Enter without typing to use environment variable OLLAMA_API_KEY):"
+        : "Enter API key for FIM completions:";
+
+      const apiKey = await vscode.window.showInputBox({
+        prompt: promptMessage,
+        password: true,
+        placeHolder: currentEnvKey
+          ? "(using OLLAMA_API_KEY from environment)"
+          : undefined,
+      });
+
+      if (apiKey !== undefined) {
+        await setApiKey(context.secrets, apiKey);
+        vscode.window.showInformationMessage(
+          apiKey
+            ? "FIM Completions: API key has been set."
+            : "FIM Completions: Using OLLAMA_API_KEY from environment.",
+        );
+      }
+    },
+  );
+
+  // Register command to clear API key
+  const clearApiKeyCommand = vscode.commands.registerCommand(
+    "fim.clearApiKey",
+    async () => {
+      await clearApiKey(context.secrets);
+      vscode.window.showInformationMessage(
+        "FIM Completions: API key has been cleared. Using OLLAMA_API_KEY from environment if available.",
+      );
+    },
+  );
+
+  context.subscriptions.push(setApiKeyCommand, clearApiKeyCommand);
 }
 
 export function deactivate(): void {}

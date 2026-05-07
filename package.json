@@ -49,11 +49,6 @@
           "default": "http://localhost:11434",
           "description": "Base URL of the Ollama API endpoint."
         },
-        "fim.apiKey": {
-          "type": "string",
-          "default": "",
-          "description": "API key for authenticated requests (required for Ollama cloud services)."
-        },
         "fim.maxTokens": {
           "type": "number",
           "default": 256,
@@ -65,9 +60,9 @@
           "enumDescriptions": [
             "EssentialAI/rnj-1-instruct - Uses <|pre_fim|>prefix<|suf_fim|>suffix<|mid_fim|>",
             "deepseek-ai/DeepSeek-Coder-V2 - Uses <|fim_begin|>prefix<|fim_hole|>suffix<|fim_end|>",
-            "Qwen/Qwen3-Coder - Uses <|fim_prefix|>prefix<|fim_suffix|>suffix<|fim_middle|>",
+            "Qwen/Qwen3-Coder - Uses <|fim_prefix|>prefix<|fim_suffix|>suffix<|fim_middle|",
             "Google/Gemma3 - Uses <|fim_prefix|>prefix<|fim_middle|>suffix<|fim_suffix|>",
-            "Mistral/Codestral-Ministral - Uses <|fim_prefix|>prefix<|fim_suffix|>suffix<|fim_middle|>"
+            "Mistral/Codestral-Ministral - Uses <|fim_prefix|>prefix<|fim_suffix|>suffix<|fim_middle|"
           ],
           "default": "rnj-1",
           "description": "FIM model family to use for completions."
@@ -78,7 +73,19 @@
           "description": "The actual model ID to use with the Ollama API (e.g., 'rnj-1:8b-cloud', 'deepseek-coder-v2:lite-instruct')."
         }
       }
-    }
+    },
+    "commands": [
+      {
+        "command": "fim.setApiKey",
+        "title": "Set API Key",
+        "category": "FIM Completions"
+      },
+      {
+        "command": "fim.clearApiKey",
+        "title": "Clear API Key",
+        "category": "FIM Completions"
+      }
+    ]
   },
   "dependencies": {
     "ollama": "^0.6.3"

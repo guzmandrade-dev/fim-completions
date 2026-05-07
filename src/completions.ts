@@ -3,10 +3,12 @@ import type {
   InlineCompletionContext,
   InlineCompletionItemProvider,
   TextDocument,
+  SecretStorage,
 } from "vscode";
 import { InlineCompletionItem, Position, Range } from "vscode";
 import { fetchGenerate, type FimModelType } from "./client.js";
 import { getSetting } from "./settings.js";
+import { getApiKey } from "./secrets.js";
 
 const MAX_PREFIX_CHARS = 2000;
 const MAX_SUFFIX_CHARS = 500;
@@ -16,6 +18,7 @@ export class FimCompletionProvider implements InlineCompletionItemProvider {
     private readonly apiUrl: string,
     private readonly model: string,
     private readonly modelType: FimModelType = "rnj-1",
+    private readonly secretStorage: SecretStorage,
   ) {}
 
   async provideInlineCompletionItems(
@@ -69,7 +72,7 @@ export class FimCompletionProvider implements InlineCompletionItemProvider {
     const maxTokens = getSetting<number>("maxTokens", 128);
 
     try {
-      const apiKey = getSetting<string>("apiKey", "")?.trim() ?? "";
+      const apiKey = (await getApiKey(this.secretStorage))?.trim();
       const response = await fetchGenerate(
         this.apiUrl,
         {
