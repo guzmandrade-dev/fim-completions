@@ -1,7 +1,7 @@
 {
     "name": "ollama-fim",
     "displayName": "Ollama FIM",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "Local AI code completions using Fill-In-the-Middle (FIM) models via Ollama",
     "license": "GPL-3.0",
     "publisher": "guzmandrade-dev",

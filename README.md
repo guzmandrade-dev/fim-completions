@@ -64,6 +64,17 @@ Open this folder in VS Code and press **F5** to launch the Extension Development
 
 ## Release Notes
 
+### 0.3.0
+
+- Renamed extension to "Ollama FIM" for clarity
+- Added GPL-3.0 license
+- Added file context options for better completions:
+  - `fim.includeFileContext` - Include imports, class definitions, function signatures
+  - `fim.includeScopeInfo` - Include current scope information (e.g., "in class MyClass > function myMethod")
+  - `fim.fileContextChars` - Configure max characters for file context
+- Fixed README table rendering for GitHub
+- Improved logging to show only model name instead of full request
+
 ### 0.2.0
 
 - Added support for multiple FIM model families:
