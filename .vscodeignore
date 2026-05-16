@@ -1,0 +1,15 @@
+# Source files (compiled to dist/)
+src/
+
+# Dependencies
+node_modules/
+
+# Config files
+tsconfig.json
+tsup.config.ts
+vitest.config.ts
+
+# Development
+.vscode/
+.github/
+.gitignore
