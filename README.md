@@ -1,6 +1,6 @@
-# FIM Completions
+# Ollama FIM
 
-A minimal VS Code extension that provides inline (ghost-text) code completions using Fill-In-the-Middle (FIM) models. It leverages VS Code's native `InlineCompletionItemProvider` API — the same mechanism GitHub Copilot uses.
+A minimal VS Code extension that provides inline (ghost-text) code completions using Fill-In-the-Middle (FIM) models via Ollama.
 
 ## Features
 
