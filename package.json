@@ -71,6 +71,21 @@
           "type": "string",
           "default": "rnj-1:8b-cloud",
           "description": "The actual model ID to use with the Ollama API (e.g., 'rnj-1:8b-cloud', 'deepseek-coder-v2:lite-instruct')."
+        },
+        "fim.includeFileContext": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include file-level context (imports, class definitions, function signatures) in the FIM prompt for better context-aware completions."
+        },
+        "fim.includeScopeInfo": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include current scope information (e.g., 'Currently in: class MyClass > function myMethod') in the FIM prompt."
+        },
+        "fim.fileContextChars": {
+          "type": "number",
+          "default": 3000,
+          "description": "Maximum number of characters to include from file-level context."
         }
       }
     },

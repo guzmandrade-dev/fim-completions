@@ -9,6 +9,11 @@ import { InlineCompletionItem, Position, Range } from "vscode";
 import { fetchGenerate, type FimModelType } from "./client.js";
 import { getSetting } from "./settings.js";
 import { getApiKey } from "./secrets.js";
+import {
+  extractFileContext,
+  formatFileContext,
+  extractCurrentScope,
+} from "./context.js";
 
 const MAX_PREFIX_CHARS = 2000;
 const MAX_SUFFIX_CHARS = 500;
@@ -31,6 +36,10 @@ export class FimCompletionProvider implements InlineCompletionItemProvider {
 
     const enabled = getSetting<boolean>("enabled", true);
     if (!enabled) return null;
+
+    const includeFileContext = getSetting<boolean>("includeFileContext", true);
+    const includeScopeInfo = getSetting<boolean>("includeScopeInfo", true);
+    const fileContextChars = getSetting<number>("fileContextChars", 3000);
 
     const offset = document.offsetAt(position);
     const prefixStart = Math.max(0, offset - MAX_PREFIX_CHARS);
@@ -69,6 +78,27 @@ export class FimCompletionProvider implements InlineCompletionItemProvider {
       return null;
     }
 
+    let enrichedPrefix = prefix;
+
+    // Add file-level context if enabled
+    if (includeFileContext) {
+      const fileContext = extractFileContext(document, position, fileContextChars);
+      const formattedContext = formatFileContext(
+        fileContext,
+        document.fileName.split("/").pop() || "untitled",
+        document.languageId,
+      );
+      enrichedPrefix = formattedContext + enrichedPrefix;
+    }
+
+    // Add scope information if enabled
+    if (includeScopeInfo) {
+      const currentScope = extractCurrentScope(document, position);
+      if (currentScope) {
+        enrichedPrefix = `// Currently in: ${currentScope}\n${enrichedPrefix}`;
+      }
+    }
+
     const maxTokens = getSetting<number>("maxTokens", 128);
 
     try {
@@ -77,7 +107,7 @@ export class FimCompletionProvider implements InlineCompletionItemProvider {
         this.apiUrl,
         {
           model: this.model,
-          prefix,
+          prefix: enrichedPrefix,
           suffix: suffix.length > 0 ? suffix : undefined,
           modelType: this.modelType,
           options: { num_predict: maxTokens, temperature: 0.1 },

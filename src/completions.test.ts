@@ -21,37 +21,73 @@ describe("FimCompletionProvider", () => {
     return { isCancellationRequested };
   }
 
-  function makePosition(offset: number) {
-    return { _off: offset, line: 0, character: offset };
+  function makePosition(line: number, character: number) {
+    return { line, character };
   }
 
-  function makeDocument(text: string, cursorOffset: number) {
-    const positionAt = (off: number) =>
-      new (class {
-        constructor(public readonly _off: number) {}
-      })(Math.min(Math.max(0, off), text.length));
+  function makeDocument(
+    text: string,
+    cursorLine: number,
+    cursorChar: number,
+    fileName = "test.ts",
+    languageId = "typescript",
+  ) {
+    const lines = text.split("\n");
+
+    const positionAt = (off: number) => {
+      let line = 0;
+      let char = off;
+      for (let i = 0; i < lines.length; i++) {
+        if (char <= lines[i].length) {
+          line = i;
+          break;
+        }
+        char -= lines[i].length + 1; // +1 for newline
+      }
+      return { line, character: char };
+    };
 
     return {
+      fileName,
+      languageId,
       getText: (range?: unknown) => {
         if (!range) return text;
-        const r = range as { start: { _off?: number }; end: { _off?: number } };
-        const start = r.start._off ?? cursorOffset;
-        const end = r.end._off ?? cursorOffset;
-        return text.slice(start, end);
-      },
-      offsetAt: (pos: unknown) => {
-        if (typeof pos === "object" && pos !== null) {
-          if ("_off" in (pos as object)) return (pos as { _off: number })._off;
-          if (
-            "character" in (pos as object) &&
-            (pos as { character: number }).character === Number.MAX_SAFE_INTEGER
-          )
-            return text.length;
+        const r = range as { start: { line: number; character: number }; end: { line: number; character: number } };
+        const startLine = r.start.line;
+        const endLine = r.end.line;
+        const startChar = r.start.character;
+        const endChar = r.end.character;
+
+        const selectedLines: string[] = [];
+        for (let i = startLine; i <= endLine; i++) {
+          if (i >= 0 && i < lines.length) {
+            if (i === startLine && i === endLine) {
+              selectedLines.push(lines[i].substring(startChar, endChar));
+            } else if (i === startLine) {
+              selectedLines.push(lines[i].substring(startChar));
+            } else if (i === endLine) {
+              selectedLines.push(lines[i].substring(0, endChar));
+            } else {
+              selectedLines.push(lines[i]);
+            }
+          }
         }
-        return cursorOffset;
+        return selectedLines.join("\n");
+      },
+      offsetAt: (pos: { line: number; character: number }) => {
+        let offset = 0;
+        for (let i = 0; i < pos.line && i < lines.length; i++) {
+          offset += lines[i].length + 1;
+        }
+        if (pos.line < lines.length) {
+          offset += pos.character;
+        } else {
+          offset = text.length;
+        }
+        return offset;
       },
       positionAt,
-      lineCount: text.split("\n").length || 1,
+      lineCount: lines.length,
     };
   }
 
@@ -63,8 +99,8 @@ describe("FimCompletionProvider", () => {
       "rnj-1",
     );
     const result = await provider.provideInlineCompletionItems(
-      makeDocument("hello", 5) as any,
-      makePosition(5) as any,
+      makeDocument("hello", 0, 5) as any,
+      makePosition(0, 5) as any,
       {} as any,
       makeToken() as any,
     );
@@ -81,10 +117,9 @@ describe("FimCompletionProvider", () => {
     );
 
     const text = "hello world";
-    const offset = 5;
     const result = await provider.provideInlineCompletionItems(
-      makeDocument(text, offset) as any,
-      makePosition(offset) as any,
+      makeDocument(text, 0, 5) as any,
+      makePosition(0, 5) as any,
       {} as any,
       makeToken() as any,
     );
@@ -94,7 +129,6 @@ describe("FimCompletionProvider", () => {
       "http://localhost:11434",
       expect.objectContaining({
         model: "qwen2.5-coder:1.5b",
-        prefix: "hello",
         suffix: " world",
         modelType: "rnj-1",
       }),
@@ -118,10 +152,9 @@ describe("FimCompletionProvider", () => {
     );
 
     const text = "this is a longer hello world";
-    const offset = 20;
     await provider.provideInlineCompletionItems(
-      makeDocument(text, offset) as any,
-      makePosition(offset) as any,
+      makeDocument(text, 0, 20) as any,
+      makePosition(0, 20) as any,
       {} as any,
       makeToken() as any,
     );
@@ -147,10 +180,9 @@ describe("FimCompletionProvider", () => {
     );
 
     const text = "this is a longer hello world";
-    const offset = 20;
     await provider.provideInlineCompletionItems(
-      makeDocument(text, offset) as any,
-      makePosition(offset) as any,
+      makeDocument(text, 0, 20) as any,
+      makePosition(0, 20) as any,
       {} as any,
       makeToken() as any,
     );
@@ -173,8 +205,8 @@ describe("FimCompletionProvider", () => {
       "rnj-1",
     );
     const result = await provider.provideInlineCompletionItems(
-      makeDocument("hello", 5) as any,
-      makePosition(5) as any,
+      makeDocument("hello", 0, 5) as any,
+      makePosition(0, 5) as any,
       {} as any,
       makeToken(true) as any,
     );
@@ -192,8 +224,8 @@ describe("FimCompletionProvider", () => {
       "rnj-1",
     );
     const result = await provider.provideInlineCompletionItems(
-      makeDocument("hello", 5) as any,
-      makePosition(5) as any,
+      makeDocument("hello", 0, 5) as any,
+      makePosition(0, 5) as any,
       {} as any,
       makeToken() as any,
     );
@@ -214,8 +246,8 @@ describe("FimCompletionProvider", () => {
       );
 
       await provider.provideInlineCompletionItems(
-        makeDocument("hello world", 5) as any,
-        makePosition(5) as any,
+        makeDocument("hello world", 0, 5) as any,
+        makePosition(0, 5) as any,
         {} as any,
         makeToken() as any,
       );
@@ -225,8 +257,6 @@ describe("FimCompletionProvider", () => {
         expect.objectContaining({
           model: "deepseek-coder-v2:lite-instruct",
           modelType: "deepseek",
-          prefix: "hello",
-          suffix: " world",
         }),
         undefined,
       );
@@ -241,8 +271,8 @@ describe("FimCompletionProvider", () => {
       );
 
       await provider.provideInlineCompletionItems(
-        makeDocument("hello world", 5) as any,
-        makePosition(5) as any,
+        makeDocument("hello world", 0, 5) as any,
+        makePosition(0, 5) as any,
         {} as any,
         makeToken() as any,
       );
@@ -252,8 +282,6 @@ describe("FimCompletionProvider", () => {
         expect.objectContaining({
           model: "qwen3-coder-next:latest",
           modelType: "qwen",
-          prefix: "hello",
-          suffix: " world",
         }),
         undefined,
       );
@@ -268,8 +296,8 @@ describe("FimCompletionProvider", () => {
       );
 
       await provider.provideInlineCompletionItems(
-        makeDocument("hello world", 5) as any,
-        makePosition(5) as any,
+        makeDocument("hello world", 0, 5) as any,
+        makePosition(0, 5) as any,
         {} as any,
         makeToken() as any,
       );
@@ -279,8 +307,6 @@ describe("FimCompletionProvider", () => {
         expect.objectContaining({
           model: "gemma3:latest",
           modelType: "gemma",
-          prefix: "hello",
-          suffix: " world",
         }),
         undefined,
       );
@@ -295,8 +321,8 @@ describe("FimCompletionProvider", () => {
       );
 
       await provider.provideInlineCompletionItems(
-        makeDocument("hello world", 5) as any,
-        makePosition(5) as any,
+        makeDocument("hello world", 0, 5) as any,
+        makePosition(0, 5) as any,
         {} as any,
         makeToken() as any,
       );
@@ -306,11 +332,126 @@ describe("FimCompletionProvider", () => {
         expect.objectContaining({
           model: "codestral:latest",
           modelType: "mistral",
-          prefix: "hello",
-          suffix: " world",
         }),
         undefined,
       );
+    });
+  });
+
+  describe("file context", () => {
+    it("includes file context when enabled", async () => {
+      setMockConfig({
+        enabled: true,
+        model: "qwen2.5-coder:1.5b",
+        includeFileContext: true,
+        includeScopeInfo: false,
+      });
+      const provider = new FimCompletionProvider(
+        "http://localhost:11434",
+        "qwen2.5-coder:1.5b",
+        "rnj-1",
+      );
+
+      const code = `import { useState } from "react";
+import { fetchData } from "./api";
+
+const CONFIG = { timeout: 5000 };
+
+function App() {
+  const [data, setData] = useState(null);
+  
+  // Cursor here
+}`;
+
+      await provider.provideInlineCompletionItems(
+        makeDocument(code, 7, 19, "App.tsx", "typescript") as any,
+        makePosition(7, 19) as any,
+        {} as any,
+        makeToken() as any,
+      );
+
+      expect(fetchGenerate).toHaveBeenCalledTimes(1);
+      const call = vi.mocked(fetchGenerate).mock.calls[0];
+      const prefix = (call[1] as any).prefix;
+
+      // Should include imports
+      expect(prefix).toContain("import { useState }");
+      expect(prefix).toContain("import { fetchData }");
+      // Should include class/function definitions
+      expect(prefix).toContain("const CONFIG");
+      expect(prefix).toContain("function App()");
+    });
+
+    it("excludes file context when disabled", async () => {
+      setMockConfig({
+        enabled: true,
+        model: "qwen2.5-coder:1.5b",
+        includeFileContext: false,
+        includeScopeInfo: false,
+      });
+      const provider = new FimCompletionProvider(
+        "http://localhost:11434",
+        "qwen2.5-coder:1.5b",
+        "rnj-1",
+      );
+
+      const code = `import { useState } from "react";
+
+function App() {
+  const x = 
+}`;
+
+      await provider.provideInlineCompletionItems(
+        makeDocument(code, 3, 10, "App.tsx", "typescript") as any,
+        makePosition(3, 10) as any,
+        {} as any,
+        makeToken() as any,
+      );
+
+      const call = vi.mocked(fetchGenerate).mock.calls[0];
+      const prefix = (call[1] as any).prefix;
+
+      // Should NOT include context markers
+      expect(prefix).not.toContain("<|file_context|>");
+      // Should just have the immediate prefix
+      expect(prefix).toContain("const x =");
+    });
+
+    it("includes scope info when enabled", async () => {
+      setMockConfig({
+        enabled: true,
+        model: "qwen2.5-coder:1.5b",
+        includeFileContext: false,
+        includeScopeInfo: true,
+      });
+      const provider = new FimCompletionProvider(
+        "http://localhost:11434",
+        "qwen2.5-coder:1.5b",
+        "rnj-1",
+      );
+
+      const code = `class MyClass {
+  constructor() {
+    this.value = 0;
+  }
+  
+  calculate() {
+    return 
+  }
+}`;
+
+      await provider.provideInlineCompletionItems(
+        makeDocument(code, 6, 11, "example.ts", "typescript") as any,
+        makePosition(6, 11) as any,
+        {} as any,
+        makeToken() as any,
+      );
+
+      const call = vi.mocked(fetchGenerate).mock.calls[0];
+      const prefix = (call[1] as any).prefix;
+
+      // Should include scope hint
+      expect(prefix).toContain("// Currently in:");
     });
   });
 });
