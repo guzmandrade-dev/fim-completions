@@ -14,11 +14,11 @@ A minimal VS Code extension that provides inline (ghost-text) code completions u
 
 | Family | Format | Example Model ID |
 |--------|--------|------------------|
-| **rnj-1** | `<|pre_fim|>...<|suf_fim|>...<|mid_fim|>` | `rnj-1:8b-cloud` |
-| **deepseek** | `<|fim_begin|>...<|fim_hole|>...<|fim_end|>` | `deepseek-coder-v2:lite-instruct` |
-| **qwen** | `<|fim_prefix|>...<|fim_suffix|>...<|fim_middle|>` | `qwen3-coder-next:latest` |
-| **gemma** | `<|fim_prefix|>...<|fim_middle|>...<|fim_suffix|>` | `gemma3:latest` |
-| **mistral** | `<|fim_prefix|>...<|fim_suffix|>...<|fim_middle|>` | `codestral:latest` |
+| **rnj-1** | `&lt;|pre_fim|&gt;...&lt;|suf_fim|&gt;...&lt;|mid_fim|&gt;` | `rnj-1:8b-cloud` |
+| **deepseek** | `&lt;|fim_begin|&gt;...&lt;|fim_hole|&gt;...&lt;|fim_end|&gt;` | `deepseek-coder-v2:lite-instruct` |
+| **qwen** | `&lt;|fim_prefix|&gt;...&lt;|fim_suffix|&gt;...&lt;|fim_middle|&gt;` | `qwen3-coder-next:latest` |
+| **gemma** | `&lt;|fim_prefix|&gt;...&lt;|fim_middle|&gt;...&lt;|fim_suffix|&gt;` | `gemma3:latest` |
+| **mistral** | `&lt;|fim_prefix|&gt;...&lt;|fim_suffix|&gt;...&lt;|fim_middle|&gt;` | `codestral:latest` |
 
 ## Requirements
 
