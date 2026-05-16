@@ -9,112 +9,106 @@
         "type": "git",
         "url": "https://github.com/guzmandrade-dev/fim-completions.git"
     },
-    "engines": {
-        "vscode": "^1.90.0"
-    },
-    "categories": [
-        "Machine Learning",
-        "Snippets"
-    ],
-    "keywords": [
-        "ai",
-        "autocomplete",
-        "completion",
-        "fim",
-        "inline",
-        "llm"
-    ],
-    "activationEvents": [
-        "onStartupFinished"
-    ],
-    "main": "./dist/extension.js",
-    "scripts": {
-        "compile": "tsup",
-        "watch": "tsup --watch",
-        "test": "vitest run",
-        "test:watch": "vitest"
-    },
-    "devDependencies": {
-        "@types/node": "^22.0.0",
-        "@types/vscode": "^1.90.0",
-        "tsup": "^8.0.0",
-        "typescript": "^5.5.0",
-        "vitest": "^2.0.0"
-    },
-    "contributes": {
-        "configuration": {
-            "title": "Ollama FIM",
-            "properties": {
-                "fim.enabled": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Enable inline FIM completions via Ollama."
-                },
-                "fim.apiUrl": {
-                    "type": "string",
-                    "default": "http://localhost:11434",
-                    "description": "Base URL of the Ollama API endpoint."
-                },
-                "fim.maxTokens": {
-                    "type": "number",
-                    "default": 256,
-                    "description": "Maximum number of tokens to generate per completion."
-                },
-                "fim.model": {
-                    "type": "string",
-                    "enum": [
-                        "rnj-1",
-                        "deepseek",
-                        "qwen",
-                        "gemma",
-                        "mistral"
-                    ],
-                    "enumDescriptions": [
-                        "EssentialAI/rnj-1-instruct - Uses <|pre_fim|>prefix<|suf_fim|>suffix<|mid_fim|>",
-                        "deepseek-ai/DeepSeek-Coder-V2 - Uses <|fim_begin|>prefix<|fim_hole|>suffix<|fim_end|>",
-                        "Qwen/Qwen3-Coder - Uses <|fim_prefix|>prefix<|fim_suffix|>suffix<|fim_middle|",
-                        "Google/Gemma3 - Uses <|fim_prefix|>prefix<|fim_middle|>suffix<|fim_suffix|>",
-                        "Mistral/Codestral-Ministral - Uses <|fim_prefix|>prefix<|fim_suffix|>suffix<|fim_middle|"
-                    ],
-                    "default": "rnj-1",
-                    "description": "FIM model family to use for completions."
-                },
-                "fim.modelId": {
-                    "type": "string",
-                    "default": "rnj-1:8b-cloud",
-                    "description": "The actual model ID to use with the Ollama API (e.g., 'rnj-1:8b-cloud', 'deepseek-coder-v2:lite-instruct')."
-                },
-                "fim.includeFileContext": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Include file-level context (imports, class definitions, function signatures) in the FIM prompt for better context-aware completions."
-                },
-                "fim.includeScopeInfo": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Include current scope information (e.g., 'Currently in: class MyClass > function myMethod') in the FIM prompt."
-                },
-                "fim.fileContextChars": {
-                    "type": "number",
-                    "default": 3000,
-                    "description": "Maximum number of characters to include from file-level context."
-                }
-            }
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Machine Learning",
+    "Snippets"
+  ],
+  "keywords": [
+    "ai",
+    "autocomplete",
+    "completion",
+    "fim",
+    "inline",
+    "llm"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "scripts": {
+    "compile": "tsup",
+    "watch": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.90.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  },
+  "contributes": {
+    "configuration": {
+      "title": "FIM Completions",
+      "properties": {
+        "fim.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable inline FIM completions using rnj-1 model."
         },
-        "commands": [
-            {
-                "command": "fim.setApiKey",
-                "title": "Set API Key",
-                "category": "Ollama FIM"
-            },
-            {
-                "command": "fim.clearApiKey",
-                "title": "Clear API Key",
-                "category": "Ollama FIM"
-            }
-        ]
+        "fim.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:11434",
+          "description": "Base URL of the Ollama API endpoint."
+        },
+        "fim.maxTokens": {
+          "type": "number",
+          "default": 256,
+          "description": "Maximum number of tokens to generate per completion."
+        },
+        "fim.model": {
+          "type": "string",
+          "enum": ["rnj-1", "deepseek", "qwen", "gemma", "mistral"],
+          "enumDescriptions": [
+            "EssentialAI/rnj-1-instruct - Uses <|pre_fim|>prefix<|suf_fim|>suffix<|mid_fim|>",
+            "deepseek-ai/DeepSeek-Coder-V2 - Uses <|fim_begin|>prefix<|fim_hole|>suffix<|fim_end|>",
+            "Qwen/Qwen3-Coder - Uses <|fim_prefix|>prefix<|fim_suffix|>suffix<|fim_middle|",
+            "Google/Gemma3 - Uses <|fim_prefix|>prefix<|fim_middle|>suffix<|fim_suffix|>",
+            "Mistral/Codestral-Ministral - Uses <|fim_prefix|>prefix<|fim_suffix|>suffix<|fim_middle|"
+          ],
+          "default": "rnj-1",
+          "description": "FIM model family to use for completions."
+        },
+        "fim.modelId": {
+          "type": "string",
+          "default": "rnj-1:8b-cloud",
+          "description": "The actual model ID to use with the Ollama API (e.g., 'rnj-1:8b-cloud', 'deepseek-coder-v2:lite-instruct')."
+        },
+        "fim.includeFileContext": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include file-level context (imports, class definitions, function signatures) in the FIM prompt for better context-aware completions."
+        },
+        "fim.includeScopeInfo": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include current scope information (e.g., 'Currently in: class MyClass > function myMethod') in the FIM prompt."
+        },
+        "fim.fileContextChars": {
+          "type": "number",
+          "default": 3000,
+          "description": "Maximum number of characters to include from file-level context."
+        }
+      }
     },
-    "dependencies": {
-        "ollama": "^0.6.3"
-    }
+    "commands": [
+      {
+        "command": "fim.setApiKey",
+        "title": "Set API Key",
+        "category": "FIM Completions"
+      },
+      {
+        "command": "fim.clearApiKey",
+        "title": "Clear API Key",
+        "category": "FIM Completions"
+      }
+    ]
+  },
+  "dependencies": {
+    "ollama": "^0.6.3"
+  }
 }
