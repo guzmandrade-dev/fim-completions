@@ -130,7 +130,7 @@ export async function fetchGenerate(
       stop: stopTokens,
     },
   };
-  console.log("[FIM] generate request:", JSON.stringify(generateReq, null, 2));
+  console.log(`[FIM] generating completion for model: ${generateReq.model}`);
 
   const response = await ollama.generate(generateReq);
 
