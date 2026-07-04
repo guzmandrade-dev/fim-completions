@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { setMockConfig } from "./test/vscode.mock.js";
+import { setMockConfig, SecretStorage } from "./test/vscode.mock.js";
 import { FimCompletionProvider } from "./completions.js";
 import { fetchGenerate } from "./client.js";
 
@@ -8,7 +8,11 @@ vi.mock("./client.js", () => ({
 }));
 
 describe("FimCompletionProvider", () => {
+  let secretStorage: SecretStorage;
+
   beforeEach(() => {
+    secretStorage = new SecretStorage();
+    delete process.env.OLLAMA_API_KEY;
     vi.mocked(fetchGenerate).mockResolvedValue({ response: "const x = 1;" });
   });
 
@@ -52,7 +56,10 @@ describe("FimCompletionProvider", () => {
       languageId,
       getText: (range?: unknown) => {
         if (!range) return text;
-        const r = range as { start: { line: number; character: number }; end: { line: number; character: number } };
+        const r = range as {
+          start: { line: number; character: number };
+          end: { line: number; character: number };
+        };
         const startLine = r.start.line;
         const endLine = r.end.line;
         const startChar = r.start.character;
@@ -91,13 +98,26 @@ describe("FimCompletionProvider", () => {
     };
   }
 
-  it("returns null when enabled is false", async () => {
-    setMockConfig({ enabled: false, model: "llama3.2" });
-    const provider = new FimCompletionProvider(
-      "http://localhost:11434",
-      "llama3.2",
-      "rnj-1",
+  function makeProvider(
+    apiUrl = "http://localhost:11434",
+    apiPath = "/api/generate",
+    backend: import("./client.js").Backend = "ollama",
+    model = "qwen2.5-coder:3b",
+    modelType: import("./client.js").FimModelType = "qwen",
+  ) {
+    return new FimCompletionProvider(
+      apiUrl,
+      apiPath,
+      backend,
+      model,
+      modelType,
+      secretStorage as any,
     );
+  }
+
+  it("returns null when enabled is false", async () => {
+    setMockConfig({ enabled: false, model: "qwen" });
+    const provider = makeProvider();
     const result = await provider.provideInlineCompletionItems(
       makeDocument("hello", 0, 5) as any,
       makePosition(0, 5) as any,
@@ -109,12 +129,8 @@ describe("FimCompletionProvider", () => {
   });
 
   it("calls fetchGenerate with correct prefix and suffix", async () => {
-    setMockConfig({ enabled: true, model: "qwen2.5-coder:1.5b" });
-    const provider = new FimCompletionProvider(
-      "http://localhost:11434",
-      "qwen2.5-coder:1.5b",
-      "rnj-1",
-    );
+    setMockConfig({ enabled: true, model: "qwen" });
+    const provider = makeProvider();
 
     const text = "hello world";
     const result = await provider.provideInlineCompletionItems(
@@ -127,10 +143,12 @@ describe("FimCompletionProvider", () => {
     expect(fetchGenerate).toHaveBeenCalledTimes(1);
     expect(fetchGenerate).toHaveBeenCalledWith(
       "http://localhost:11434",
+      "/api/generate",
+      "ollama",
       expect.objectContaining({
-        model: "qwen2.5-coder:1.5b",
+        model: "qwen2.5-coder:3b",
         suffix: " world",
-        modelType: "rnj-1",
+        modelType: "qwen",
       }),
       undefined,
     );
@@ -140,16 +158,12 @@ describe("FimCompletionProvider", () => {
   });
 
   it("sends apiKey to fetchGenerate when set", async () => {
+    secretStorage.store("fim.apiKey", "secret-token");
     setMockConfig({
       enabled: true,
-      model: "qwen2.5-coder:1.5b",
-      apiKey: "secret-token",
+      model: "qwen",
     });
-    const provider = new FimCompletionProvider(
-      "http://localhost:11434",
-      "qwen2.5-coder:1.5b",
-      "rnj-1",
-    );
+    const provider = makeProvider();
 
     const text = "this is a longer hello world";
     await provider.provideInlineCompletionItems(
@@ -162,6 +176,8 @@ describe("FimCompletionProvider", () => {
     expect(fetchGenerate).toHaveBeenCalledTimes(1);
     expect(fetchGenerate).toHaveBeenCalledWith(
       "http://localhost:11434",
+      "/api/generate",
+      "ollama",
       expect.any(Object),
       "secret-token",
     );
@@ -170,14 +186,10 @@ describe("FimCompletionProvider", () => {
   it("uses custom maxTokens when set", async () => {
     setMockConfig({
       enabled: true,
-      model: "qwen2.5-coder:1.5b",
+      model: "qwen",
       maxTokens: 256,
     });
-    const provider = new FimCompletionProvider(
-      "http://localhost:11434",
-      "qwen2.5-coder:1.5b",
-      "rnj-1",
-    );
+    const provider = makeProvider();
 
     const text = "this is a longer hello world";
     await provider.provideInlineCompletionItems(
@@ -190,20 +202,18 @@ describe("FimCompletionProvider", () => {
     expect(fetchGenerate).toHaveBeenCalledTimes(1);
     expect(fetchGenerate).toHaveBeenCalledWith(
       "http://localhost:11434",
+      "/api/generate",
+      "ollama",
       expect.objectContaining({
-        options: expect.objectContaining({ num_predict: 256 }),
+        options: expect.objectContaining({ num_predict: 256, max_tokens: 256 }),
       }),
       undefined,
     );
   });
 
   it("returns null when token is already cancelled", async () => {
-    setMockConfig({ enabled: true, model: "qwen2.5-coder:1.5b" });
-    const provider = new FimCompletionProvider(
-      "http://localhost:11434",
-      "qwen2.5-coder:1.5b",
-      "rnj-1",
-    );
+    setMockConfig({ enabled: true, model: "qwen" });
+    const provider = makeProvider();
     const result = await provider.provideInlineCompletionItems(
       makeDocument("hello", 0, 5) as any,
       makePosition(0, 5) as any,
@@ -217,12 +227,8 @@ describe("FimCompletionProvider", () => {
   it("returns null on fetch error", async () => {
     vi.mocked(fetchGenerate).mockRejectedValue(new Error("ECONNREFUSED"));
 
-    setMockConfig({ enabled: true, model: "qwen2.5-coder:1.5b" });
-    const provider = new FimCompletionProvider(
-      "http://localhost:11434",
-      "qwen2.5-coder:1.5b",
-      "rnj-1",
-    );
+    setMockConfig({ enabled: true, model: "qwen" });
+    const provider = makeProvider();
     const result = await provider.provideInlineCompletionItems(
       makeDocument("hello", 0, 5) as any,
       makePosition(0, 5) as any,
@@ -235,12 +241,11 @@ describe("FimCompletionProvider", () => {
 
   describe("model type handling", () => {
     it("uses deepseek model type correctly", async () => {
-      setMockConfig({
-        enabled: true,
-        model: "deepseek-coder-v2:lite-instruct",
-      });
-      const provider = new FimCompletionProvider(
+      setMockConfig({ enabled: true, model: "deepseek" });
+      const provider = makeProvider(
         "http://localhost:11434",
+        "/api/generate",
+        "ollama",
         "deepseek-coder-v2:lite-instruct",
         "deepseek",
       );
@@ -254,6 +259,8 @@ describe("FimCompletionProvider", () => {
 
       expect(fetchGenerate).toHaveBeenCalledWith(
         "http://localhost:11434",
+        "/api/generate",
+        "ollama",
         expect.objectContaining({
           model: "deepseek-coder-v2:lite-instruct",
           modelType: "deepseek",
@@ -263,10 +270,12 @@ describe("FimCompletionProvider", () => {
     });
 
     it("uses qwen model type correctly", async () => {
-      setMockConfig({ enabled: true, model: "qwen3-coder-next:latest" });
-      const provider = new FimCompletionProvider(
+      setMockConfig({ enabled: true, model: "qwen" });
+      const provider = makeProvider(
         "http://localhost:11434",
-        "qwen3-coder-next:latest",
+        "/api/generate",
+        "ollama",
+        "qwen2.5-coder:3b",
         "qwen",
       );
 
@@ -279,8 +288,10 @@ describe("FimCompletionProvider", () => {
 
       expect(fetchGenerate).toHaveBeenCalledWith(
         "http://localhost:11434",
+        "/api/generate",
+        "ollama",
         expect.objectContaining({
-          model: "qwen3-coder-next:latest",
+          model: "qwen2.5-coder:3b",
           modelType: "qwen",
         }),
         undefined,
@@ -288,9 +299,11 @@ describe("FimCompletionProvider", () => {
     });
 
     it("uses gemma model type correctly", async () => {
-      setMockConfig({ enabled: true, model: "gemma3:latest" });
-      const provider = new FimCompletionProvider(
+      setMockConfig({ enabled: true, model: "gemma" });
+      const provider = makeProvider(
         "http://localhost:11434",
+        "/api/generate",
+        "ollama",
         "gemma3:latest",
         "gemma",
       );
@@ -304,6 +317,8 @@ describe("FimCompletionProvider", () => {
 
       expect(fetchGenerate).toHaveBeenCalledWith(
         "http://localhost:11434",
+        "/api/generate",
+        "ollama",
         expect.objectContaining({
           model: "gemma3:latest",
           modelType: "gemma",
@@ -313,9 +328,11 @@ describe("FimCompletionProvider", () => {
     });
 
     it("uses mistral model type correctly", async () => {
-      setMockConfig({ enabled: true, model: "codestral:latest" });
-      const provider = new FimCompletionProvider(
+      setMockConfig({ enabled: true, model: "mistral" });
+      const provider = makeProvider(
         "http://localhost:11434",
+        "/api/generate",
+        "ollama",
         "codestral:latest",
         "mistral",
       );
@@ -329,6 +346,8 @@ describe("FimCompletionProvider", () => {
 
       expect(fetchGenerate).toHaveBeenCalledWith(
         "http://localhost:11434",
+        "/api/generate",
+        "ollama",
         expect.objectContaining({
           model: "codestral:latest",
           modelType: "mistral",
@@ -342,15 +361,11 @@ describe("FimCompletionProvider", () => {
     it("includes file context when enabled", async () => {
       setMockConfig({
         enabled: true,
-        model: "qwen2.5-coder:1.5b",
+        model: "qwen",
         includeFileContext: true,
         includeScopeInfo: false,
       });
-      const provider = new FimCompletionProvider(
-        "http://localhost:11434",
-        "qwen2.5-coder:1.5b",
-        "rnj-1",
-      );
+      const provider = makeProvider();
 
       const code = `import { useState } from "react";
 import { fetchData } from "./api";
@@ -359,20 +374,19 @@ const CONFIG = { timeout: 5000 };
 
 function App() {
   const [data, setData] = useState(null);
-  
-  // Cursor here
+  const value =
 }`;
 
       await provider.provideInlineCompletionItems(
-        makeDocument(code, 7, 19, "App.tsx", "typescript") as any,
-        makePosition(7, 19) as any,
+        makeDocument(code, 6, 15, "App.tsx", "typescript") as any,
+        makePosition(6, 15) as any,
         {} as any,
         makeToken() as any,
       );
 
       expect(fetchGenerate).toHaveBeenCalledTimes(1);
       const call = vi.mocked(fetchGenerate).mock.calls[0];
-      const prefix = (call[1] as any).prefix;
+      const prefix = (call[3] as any).prefix;
 
       // Should include imports
       expect(prefix).toContain("import { useState }");
@@ -382,18 +396,12 @@ function App() {
       expect(prefix).toContain("function App()");
     });
 
-    it("excludes file context when disabled", async () => {
+    it("excludes file context by default", async () => {
       setMockConfig({
         enabled: true,
-        model: "qwen2.5-coder:1.5b",
-        includeFileContext: false,
-        includeScopeInfo: false,
+        model: "qwen",
       });
-      const provider = new FimCompletionProvider(
-        "http://localhost:11434",
-        "qwen2.5-coder:1.5b",
-        "rnj-1",
-      );
+      const provider = makeProvider();
 
       const code = `import { useState } from "react";
 
@@ -409,26 +417,51 @@ function App() {
       );
 
       const call = vi.mocked(fetchGenerate).mock.calls[0];
-      const prefix = (call[1] as any).prefix;
+      const prefix = (call[3] as any).prefix;
 
       // Should NOT include context markers
       expect(prefix).not.toContain("<|file_context|>");
-      // Should just have the immediate prefix
-      expect(prefix).toContain("const x =");
+      // Should just have the immediate prefix (cursor is after the space)
+      expect(prefix).toContain("const x");
     });
 
-    it("includes scope info when enabled", async () => {
+    it("does not include scope info when file context is disabled", async () => {
       setMockConfig({
         enabled: true,
-        model: "qwen2.5-coder:1.5b",
+        model: "qwen",
         includeFileContext: false,
         includeScopeInfo: true,
       });
-      const provider = new FimCompletionProvider(
-        "http://localhost:11434",
-        "qwen2.5-coder:1.5b",
-        "rnj-1",
+      const provider = makeProvider();
+
+      const code = `class MyClass {
+  calculate() {
+    return 
+  }
+}`;
+
+      await provider.provideInlineCompletionItems(
+        makeDocument(code, 2, 11, "example.ts", "typescript") as any,
+        makePosition(2, 11) as any,
+        {} as any,
+        makeToken() as any,
       );
+
+      const call = vi.mocked(fetchGenerate).mock.calls[0];
+      const prefix = (call[3] as any).prefix;
+
+      // Scope hint should be ignored without file context
+      expect(prefix).not.toContain("// Currently in:");
+    });
+
+    it("includes scope info when both context features are enabled", async () => {
+      setMockConfig({
+        enabled: true,
+        model: "qwen",
+        includeFileContext: true,
+        includeScopeInfo: true,
+      });
+      const provider = makeProvider();
 
       const code = `class MyClass {
   constructor() {
@@ -441,17 +474,48 @@ function App() {
 }`;
 
       await provider.provideInlineCompletionItems(
-        makeDocument(code, 6, 11, "example.ts", "typescript") as any,
-        makePosition(6, 11) as any,
+        makeDocument(code, 5, 11, "example.ts", "typescript") as any,
+        makePosition(5, 11) as any,
         {} as any,
         makeToken() as any,
       );
 
       const call = vi.mocked(fetchGenerate).mock.calls[0];
-      const prefix = (call[1] as any).prefix;
+      const prefix = (call[3] as any).prefix;
 
       // Should include scope hint
       expect(prefix).toContain("// Currently in:");
+    });
+  });
+
+  describe("OpenAI backend", () => {
+    it("uses openai backend and custom api path", async () => {
+      setMockConfig({ enabled: true, model: "qwen", backend: "openai" });
+      const provider = makeProvider(
+        "https://api.together.ai/v1",
+        "/completions",
+        "openai",
+        "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "qwen",
+      );
+
+      await provider.provideInlineCompletionItems(
+        makeDocument("hello world", 0, 5) as any,
+        makePosition(0, 5) as any,
+        {} as any,
+        makeToken() as any,
+      );
+
+      expect(fetchGenerate).toHaveBeenCalledWith(
+        "https://api.together.ai/v1",
+        "/completions",
+        "openai",
+        expect.objectContaining({
+          model: "Qwen/Qwen2.5-Coder-7B-Instruct",
+          modelType: "qwen",
+        }),
+        undefined,
+      );
     });
   });
 });

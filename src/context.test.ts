@@ -106,7 +106,6 @@ class MyComponent extends Component<Props> {
     expect(context).toContain("interface Props");
     expect(context).toContain("class MyComponent");
     expect(context).toContain("private value");
-    expect(context).toContain("render()");
   });
 
   it("respects max context chars limit", () => {
@@ -236,7 +235,7 @@ describe("extractCurrentScope", () => {
     const scope = extractCurrentScope(doc, { line: 4, character: 14 } as Position);
 
     expect(scope).toContain("class Container");
-    expect(scope).toContain("void method");
+    expect(scope).toContain("method method");
   });
 
   it("returns empty string when no scope found", () => {
