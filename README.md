@@ -100,7 +100,7 @@ Open this folder in VS Code and press **F5** to launch the Extension Development
 
 ## Release Notes
 
-### Unreleased
+### 0.4.0
 
 - Replaced the `ollama` npm package with direct `fetch`, supporting both Ollama and OpenAI-compatible backends
 - Added `fim.backend` and `fim.apiPath` settings
