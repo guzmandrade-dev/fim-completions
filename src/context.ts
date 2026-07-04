@@ -205,8 +205,10 @@ export function formatFileContext(
     return "";
   }
 
-  const ext = fileName.split(".").pop() || languageId;
-  return `<|file_context|>File: ${fileName}\n\`\`\`${ext}\n${context}\n\`\`\`<|end_file_context|>\n\n`;
+  // Prefer the VS Code language ID for the code fence; it is more reliable
+  // than a file extension (e.g., `.py` -> python, unknown ext -> javascript).
+  const fenceLanguage = languageId || fileName.split(".").pop() || "text";
+  return `<|file_context|>File: ${fileName}\n\`\`\`${fenceLanguage}\n${context}\n\`\`\`<|end_file_context|>\n\n`;
 }
 
 /**
@@ -273,7 +275,7 @@ export function extractCurrentScope(
 
 function matchScopeEntry(
   line: string,
-  languageId: string,
+  _languageId: string,
 ): { type: string; name: string } | null {
   const patterns: { pattern: RegExp; type: string }[] = [
     { pattern: /class\s+(\w+)/, type: "class" },
@@ -282,12 +284,18 @@ function matchScopeEntry(
     { pattern: /enum\s+(\w+)/, type: "enum" },
     { pattern: /trait\s+(\w+)/, type: "trait" },
     { pattern: /module\s+(\w+)/, type: "module" },
-    { pattern: /def\s+(\w+)\s*\(/, type: "function" },
+    { pattern: /def\s+(\w+)\s*\(/, type: "def" },
     { pattern: /fn\s+(\w+)\s*\(/, type: "function" },
     { pattern: /func\s+(\w+)\s*\(/, type: "function" },
     { pattern: /function\s+(\w+)\s*\(/, type: "function" },
     { pattern: /(\w+)\s*:\s*function\s*\(/, type: "method" },
     { pattern: /(\w+)\s*[=:]\s*\([^)]*\)\s*=>/, type: "function" },
+    // Method definitions without the `function` keyword, including access
+    // modifiers and return types (TypeScript, C++, Java, C#).
+    { pattern: /^(?:\s*(?:public|private|protected|static|async|override|virtual|abstract|final|inline)\s+)*\w+[\s*]+(\w+)\s*\([^)]*\)\s*(?:const\s*)?(?:override\s*)?(?:\{|=>)/, type: "method" },
+    // Bare class method like `calculate() {` with no return type. Exclude
+    // common control-flow keywords to avoid matching `if (...) {`, etc.
+    { pattern: /^(?!if\b|while\b|for\b|switch\b|catch\b|else\b)(\w+)\s*\([^)]*\)\s*\{/, type: "method" },
   ];
 
   for (const { pattern, type } of patterns) {

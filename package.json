@@ -1,114 +1,137 @@
 {
     "name": "ollama-fim",
     "displayName": "Ollama FIM",
-    "version": "0.3.0",
-    "description": "Local AI code completions using Fill-In-the-Middle (FIM) models via Ollama",
+    "version": "0.4.0",
+    "description": "Local and remote AI code completions using Fill-In-the-Middle (FIM) models",
     "license": "GPL-3.0",
     "publisher": "guzmandrade-dev",
     "repository": {
         "type": "git",
         "url": "https://github.com/guzmandrade-dev/fim-completions.git"
     },
-  "engines": {
-    "vscode": "^1.90.0"
-  },
-  "categories": [
-    "Machine Learning",
-    "Snippets"
-  ],
-  "keywords": [
-    "ai",
-    "autocomplete",
-    "completion",
-    "fim",
-    "inline",
-    "llm"
-  ],
-  "activationEvents": [
-    "onStartupFinished"
-  ],
-  "main": "./dist/extension.js",
-  "scripts": {
-    "compile": "tsup",
-    "watch": "tsup --watch",
-    "test": "vitest run",
-    "test:watch": "vitest"
-  },
-  "devDependencies": {
-    "@types/node": "^22.0.0",
-    "@types/vscode": "^1.90.0",
-    "tsup": "^8.0.0",
-    "typescript": "^5.5.0",
-    "vitest": "^2.0.0"
-  },
-  "contributes": {
-    "configuration": {
-      "title": "FIM Completions",
-      "properties": {
-        "fim.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable inline FIM completions using rnj-1 model."
-        },
-        "fim.apiUrl": {
-          "type": "string",
-          "default": "http://localhost:11434",
-          "description": "Base URL of the Ollama API endpoint."
-        },
-        "fim.maxTokens": {
-          "type": "number",
-          "default": 256,
-          "description": "Maximum number of tokens to generate per completion."
-        },
-        "fim.model": {
-          "type": "string",
-          "enum": ["rnj-1", "deepseek", "qwen", "gemma", "mistral"],
-          "enumDescriptions": [
-            "EssentialAI/rnj-1-instruct - Uses <|pre_fim|>prefix<|suf_fim|>suffix<|mid_fim|>",
-            "deepseek-ai/DeepSeek-Coder-V2 - Uses <|fim_begin|>prefix<|fim_hole|>suffix<|fim_end|>",
-            "Qwen/Qwen3-Coder - Uses <|fim_prefix|>prefix<|fim_suffix|>suffix<|fim_middle|",
-            "Google/Gemma3 - Uses <|fim_prefix|>prefix<|fim_middle|>suffix<|fim_suffix|>",
-            "Mistral/Codestral-Ministral - Uses <|fim_prefix|>prefix<|fim_suffix|>suffix<|fim_middle|"
-          ],
-          "default": "rnj-1",
-          "description": "FIM model family to use for completions."
-        },
-        "fim.modelId": {
-          "type": "string",
-          "default": "rnj-1:8b-cloud",
-          "description": "The actual model ID to use with the Ollama API (e.g., 'rnj-1:8b-cloud', 'deepseek-coder-v2:lite-instruct')."
-        },
-        "fim.includeFileContext": {
-          "type": "boolean",
-          "default": true,
-          "description": "Include file-level context (imports, class definitions, function signatures) in the FIM prompt for better context-aware completions."
-        },
-        "fim.includeScopeInfo": {
-          "type": "boolean",
-          "default": true,
-          "description": "Include current scope information (e.g., 'Currently in: class MyClass > function myMethod') in the FIM prompt."
-        },
-        "fim.fileContextChars": {
-          "type": "number",
-          "default": 3000,
-          "description": "Maximum number of characters to include from file-level context."
-        }
-      }
+    "engines": {
+        "vscode": "^1.90.0"
     },
-    "commands": [
-      {
-        "command": "fim.setApiKey",
-        "title": "Set API Key",
-        "category": "FIM Completions"
-      },
-      {
-        "command": "fim.clearApiKey",
-        "title": "Clear API Key",
-        "category": "FIM Completions"
-      }
-    ]
-  },
-  "dependencies": {
-    "ollama": "^0.6.3"
-  }
+    "categories": [
+        "Machine Learning",
+        "Snippets"
+    ],
+    "keywords": [
+        "ai",
+        "autocomplete",
+        "completion",
+        "fim",
+        "inline",
+        "llm"
+    ],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./dist/extension.js",
+    "scripts": {
+        "compile": "tsup",
+        "watch": "tsup --watch",
+        "test": "vitest run",
+        "test:watch": "vitest"
+    },
+    "devDependencies": {
+        "@types/node": "^22.0.0",
+        "@types/vscode": "^1.90.0",
+        "tsup": "^8.0.0",
+        "typescript": "^5.5.0",
+        "vitest": "^2.0.0"
+    },
+    "contributes": {
+        "configuration": {
+            "title": "FIM Completions",
+            "properties": {
+                "fim.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable inline FIM completions."
+                },
+                "fim.apiUrl": {
+                    "type": "string",
+                    "default": "http://localhost:11434",
+                    "description": "Base URL of the Ollama or OpenAI-compatible API endpoint."
+                },
+                "fim.backend": {
+                    "type": "string",
+                    "enum": [
+                        "ollama",
+                        "openai"
+                    ],
+                    "enumDescriptions": [
+                        "Ollama native /api/generate endpoint",
+                        "OpenAI-compatible /v1/completions endpoint"
+                    ],
+                    "default": "ollama",
+                    "description": "Backend API style to use."
+                },
+                "fim.apiPath": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Custom API path. If empty, /api/generate is used for ollama and /v1/completions for openai."
+                },
+                "fim.maxTokens": {
+                    "type": "number",
+                    "default": 64,
+                    "description": "Maximum number of tokens to generate per completion."
+                },
+                "fim.model": {
+                    "type": "string",
+                    "enum": [
+                        "rnj-1",
+                        "deepseek",
+                        "qwen",
+                        "gemma",
+                        "mistral",
+                        "ministral"
+                    ],
+                    "enumDescriptions": [
+                        "EssentialAI/rnj-1-instruct (local only) - Uses <|pre_fim|>prefix<|suf_fim|>suffix<|mid_fim|>",
+                        "deepseek-ai/DeepSeek-Coder-V2 - Uses <|fim_begin|>prefix<|fim_hole|>suffix<|fim_end|>",
+                        "Qwen/Qwen2.5-Coder - Uses <|fim_prefix|>prefix<|fim_suffix|>suffix<|fim_middle|>",
+                        "Google/Gemma3 - Uses <|fim_prefix|>prefix<|fim_middle|>suffix<|fim_suffix|>",
+                        "Mistral/Codestral - Uses [PREFIX]prefix[SUFFIX]suffix",
+                        "Mistral/Ministral - Uses [PREFIX]prefix[SUFFIX]suffix with instruction fallback"
+                    ],
+                    "default": "qwen",
+                    "description": "FIM model family to use for completions."
+                },
+                "fim.modelId": {
+                    "type": "string",
+                    "default": "",
+                    "description": "The actual model ID to use (e.g., 'qwen2.5-coder:3b', 'deepseek-coder-v2:lite-instruct'). If empty, the default for the selected model family is used."
+                },
+                "fim.includeFileContext": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Include file-level context (imports, class definitions, function signatures) in the FIM prompt for better context-aware completions."
+                },
+                "fim.includeScopeInfo": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Include current scope information (e.g., 'Currently in: class MyClass > function myMethod') in the FIM prompt. Only takes effect when includeFileContext is also enabled."
+                },
+                "fim.fileContextChars": {
+                    "type": "number",
+                    "default": 500,
+                    "description": "Maximum number of characters to include from file-level context."
+                }
+            }
+        },
+        "commands": [
+            {
+                "command": "fim.setApiKey",
+                "title": "Set API Key",
+                "category": "FIM Completions"
+            },
+            {
+                "command": "fim.clearApiKey",
+                "title": "Clear API Key",
+                "category": "FIM Completions"
+            }
+        ]
+    }
 }

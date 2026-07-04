@@ -27,3 +27,19 @@ export class Range {
 export class InlineCompletionItem {
   constructor(public readonly insertText: string) {}
 }
+
+export class SecretStorage {
+  private _store: Record<string, string> = {};
+
+  get(key: string): string | undefined {
+    return this._store[key];
+  }
+
+  store(key: string, value: string): void {
+    this._store[key] = value;
+  }
+
+  delete(key: string): void {
+    delete this._store[key];
+  }
+}

@@ -6,7 +6,12 @@ import type {
   SecretStorage,
 } from "vscode";
 import { InlineCompletionItem, Position, Range } from "vscode";
-import { fetchGenerate, type FimModelType } from "./client.js";
+import {
+  fetchGenerate,
+  type FimModelType,
+  type Backend,
+  defaultApiPath,
+} from "./client.js";
 import { getSetting } from "./settings.js";
 import { getApiKey } from "./secrets.js";
 import {
@@ -15,14 +20,19 @@ import {
   extractCurrentScope,
 } from "./context.js";
 
-const MAX_PREFIX_CHARS = 2000;
-const MAX_SUFFIX_CHARS = 500;
+// Conservative context windows ported from the Vim plugin. Smaller windows mean
+// lower latency, lower memory use, and more deterministic completions on local
+// models.
+const MAX_PREFIX_CHARS = 200;
+const MAX_SUFFIX_CHARS = 50;
 
 export class FimCompletionProvider implements InlineCompletionItemProvider {
   constructor(
     private readonly apiUrl: string,
+    private readonly apiPath: string,
+    private readonly backend: Backend,
     private readonly model: string,
-    private readonly modelType: FimModelType = "rnj-1",
+    private readonly modelType: FimModelType = "qwen",
     private readonly secretStorage: SecretStorage,
   ) {}
 
@@ -37,9 +47,9 @@ export class FimCompletionProvider implements InlineCompletionItemProvider {
     const enabled = getSetting<boolean>("enabled", true);
     if (!enabled) return null;
 
-    const includeFileContext = getSetting<boolean>("includeFileContext", true);
-    const includeScopeInfo = getSetting<boolean>("includeScopeInfo", true);
-    const fileContextChars = getSetting<number>("fileContextChars", 3000);
+    const includeFileContext = getSetting<boolean>("includeFileContext", false);
+    const includeScopeInfo = getSetting<boolean>("includeScopeInfo", false);
+    const fileContextChars = getSetting<number>("fileContextChars", 500);
 
     const offset = document.offsetAt(position);
     const prefixStart = Math.max(0, offset - MAX_PREFIX_CHARS);
@@ -91,26 +101,30 @@ export class FimCompletionProvider implements InlineCompletionItemProvider {
       enrichedPrefix = formattedContext + enrichedPrefix;
     }
 
-    // Add scope information if enabled
-    if (includeScopeInfo) {
+    // Add scope information only when file context is also enabled. The scope
+    // hint is useless without the surrounding file context, and sending both
+    // keeps the prompt short by default.
+    if (includeScopeInfo && includeFileContext) {
       const currentScope = extractCurrentScope(document, position);
       if (currentScope) {
         enrichedPrefix = `// Currently in: ${currentScope}\n${enrichedPrefix}`;
       }
     }
 
-    const maxTokens = getSetting<number>("maxTokens", 128);
+    const maxTokens = getSetting<number>("maxTokens", 64);
 
     try {
       const apiKey = (await getApiKey(this.secretStorage))?.trim();
       const response = await fetchGenerate(
         this.apiUrl,
+        this.apiPath,
+        this.backend,
         {
           model: this.model,
           prefix: enrichedPrefix,
           suffix: suffix.length > 0 ? suffix : undefined,
           modelType: this.modelType,
-          options: { num_predict: maxTokens, temperature: 0.1 },
+          options: { num_predict: maxTokens, max_tokens: maxTokens, temperature: 0.1 },
         },
         apiKey || undefined,
       );

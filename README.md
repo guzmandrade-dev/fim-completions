@@ -1,49 +1,85 @@
 # Ollama FIM
 
-A minimal VS Code extension that provides inline (ghost-text) code completions using Fill-In-the-Middle (FIM) models via Ollama.
+A minimal VS Code extension that provides inline (ghost-text) code completions using Fill-In-the-Middle (FIM) models via Ollama or any OpenAI-compatible completions endpoint.
 
 ## Features
 
 - **Ghost-text completions** as you type, powered by FIM-capable models
-- **Multi-model support**: Works with rnj-1, DeepSeek-Coder, Qwen3-Coder, Gemma3, and Codestral/Ministral
-- **FIM-optimized**: Uses each model's native FIM tokens for best results
-- **Minimal configuration**: just set your Ollama URL and choose your model family
-- **Debounced, cancellable requests** to avoid hammering your backend
+- **Multi-model support**: Works with Qwen2.5-Coder, DeepSeek-Coder, Gemma3, Codestral, Ministral, and rnj-1 (local)
+- **FIM-optimized**: Uses each model's native FIM tokens and raw mode to avoid chat-style responses
+- **OpenAI-compatible backends**: Works with local Ollama `/v1/completions`, Together AI, or any compatible provider
+- **Minimal configuration**: just set your API URL and choose your model family
+- **Cancellable requests** to avoid hammering your backend
 
 ## Supported Models
 
-| Family | Format | Example Model ID |
-|--------|--------|------------------|
-| **rnj-1** | &lt;\|pre_fim\|&gt;...&lt;\|suf_fim\|&gt;...&lt;\|mid_fim\|&gt; | `rnj-1:8b-cloud` |
-| **deepseek** | &lt;\|fim_begin\|&gt;...&lt;\|fim_hole\|&gt;...&lt;\|fim_end\|&gt; | `deepseek-coder-v2:lite-instruct` |
-| **qwen** | &lt;\|fim_prefix\|&gt;...&lt;\|fim_suffix\|&gt;...&lt;\|fim_middle\|&gt; | `qwen3-coder-next:latest` |
-| **gemma** | &lt;\|fim_prefix\|&gt;...&lt;\|fim_middle\|&gt;...&lt;\|fim_suffix\|&gt; | `gemma3:latest` |
-| **mistral** | &lt;\|fim_prefix\|&gt;...&lt;\|fim_suffix\|&gt;...&lt;\|fim_middle\|&gt; | `codestral:latest` |
+| Family | Format | Default Model ID | Notes |
+|--------|--------|------------------|-------|
+| **qwen** | `<|fim_prefix|>...<|fim_suffix|>...<|fim_middle|>` | `qwen2.5-coder:3b` | Default family |
+| **deepseek** | `<|fim_begin|>...<|fim_hole|>...<|fim_end|>` | `deepseek-coder-v2:lite-instruct` | |
+| **gemma** | `<|fim_prefix|>...<|fim_middle|>...<|fim_suffix|>` | `gemma3:latest` | |
+| **mistral** | SPM `[PREFIX]...[SUFFIX]...` | `codestral:latest` | Raw mode |
+| **ministral** | SPM `[PREFIX]...[SUFFIX]...` | `ministral-3b-latest` | Instruction fallback |
+| **rnj-1** | `<|pre_fim|>...<|suf_fim|>...<|mid_fim|>` | `rnj-1:8b-cloud` | Local only; no longer on Ollama Cloud |
 
 ## Requirements
 
 - VS Code 1.90+
-- Ollama running with your chosen FIM model pulled
+- An Ollama instance or an OpenAI-compatible API endpoint
+- Your chosen FIM model pulled / available
 
-## Setup
+## Setup (Ollama local)
 
 1. Install Ollama: https://ollama.com
-2. Pull your chosen model (e.g., rnj-1):
+2. Pull the default model:
    ```bash
-   ollama pull rnj-1:8b-cloud
+   ollama pull qwen2.5-coder:3b
    ```
 3. Start Ollama (usually runs on `http://localhost:11434`)
 4. Configure the extension settings to match your model
+
+## Setup (OpenAI-compatible provider)
+
+Example for Together AI using Qwen2.5-Coder:
+
+```json
+{
+  "fim.backend": "openai",
+  "fim.apiUrl": "https://api.together.ai/v1",
+  "fim.apiPath": "/completions",
+  "fim.model": "qwen",
+  "fim.modelId": "Qwen/Qwen2.5-Coder-7B-Instruct"
+}
+```
+
+Set an API key with the **FIM Completions: Set API Key** command, or use the `OLLAMA_API_KEY` environment variable.
 
 ## Extension Settings
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `fim.enabled` | `boolean` | `true` | Enable/disable inline completions |
-| `fim.apiUrl` | `string` | `http://localhost:11434` | Base URL of the Ollama API endpoint |
-| `fim.maxTokens` | `number` | `256` | Maximum tokens to generate per completion |
-| `fim.model` | `enum` | `rnj-1` | Model family (rnj-1, deepseek, qwen, gemma, mistral) |
-| `fim.modelId` | `string` | (from family) | Specific Ollama model ID to use |
+| `fim.backend` | `enum` | `ollama` | API style: `ollama` (`/api/generate`) or `openai` (`/v1/completions`) |
+| `fim.apiUrl` | `string` | `http://localhost:11434` | Base URL of the API endpoint |
+| `fim.apiPath` | `string` | (backend default) | Custom API path. `/api/generate` or `/v1/completions` if empty |
+| `fim.maxTokens` | `number` | `64` | Maximum tokens to generate per completion |
+| `fim.model` | `enum` | `qwen` | Model family (qwen, deepseek, gemma, mistral, ministral, rnj-1) |
+| `fim.modelId` | `string` | (from family) | Specific model ID to use |
+| `fim.includeFileContext` | `boolean` | `false` | Include imports/definitions in the prompt |
+| `fim.includeScopeInfo` | `boolean` | `false` | Include current scope hint (only when file context is enabled) |
+| `fim.fileContextChars` | `number` | `500` | Max characters of file context |
+
+## Context Awareness
+
+By default the extension sends only the immediate prefix and suffix. This keeps requests small and fast on local hardware. If you want richer suggestions on more powerful hosts, enable:
+
+```json
+{
+  "fim.includeFileContext": true,
+  "fim.includeScopeInfo": true,
+  "fim.fileContextChars": 500
+}
+```
 
 ## Build
 
@@ -63,6 +99,17 @@ npm test
 Open this folder in VS Code and press **F5** to launch the Extension Development Host. Open any file, start typing, and ghost-text completions should appear if your backend is running and `fim.model` is set.
 
 ## Release Notes
+
+### 0.4.0
+
+- Replaced the `ollama` npm package with direct `fetch`, supporting both Ollama and OpenAI-compatible backends
+- Added `fim.backend` and `fim.apiPath` settings
+- Changed default model from `rnj-1` to `qwen2.5-coder:3b`
+- rnj-1 is still supported for local use but is no longer the default
+- Added `ministral` model family with instruction fallback for non-raw FIM
+- Disabled context awareness features by default and reduced context window sizes
+- Added raw mode for FIM-native models to prevent chat-style responses
+- Scope info now only appears when file context is also enabled
 
 ### 0.3.0
 

@@ -13,7 +13,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     restoreMocks: true,
-    unstubGlobals: true,
+    unstubGlobals: false,
     setupFiles: ['./src/test/setup.ts'],
   },
 });
