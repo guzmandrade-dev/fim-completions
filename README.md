@@ -15,12 +15,12 @@ A minimal VS Code extension that provides inline (ghost-text) code completions u
 
 | Family | Format | Default Model ID | Notes |
 |--------|--------|------------------|-------|
-| **qwen** | `<|fim_prefix|>...<|fim_suffix|>...<|fim_middle|>` | `qwen2.5-coder:3b` | Default family |
-| **deepseek** | `<|fim_begin|>...<|fim_hole|>...<|fim_end|>` | `deepseek-coder-v2:lite-instruct` | |
-| **gemma** | `<|fim_prefix|>...<|fim_middle|>...<|fim_suffix|>` | `gemma3:latest` | |
+| **qwen** | `\|fim_prefix\|...\|fim_suffix\|...\|fim_middle\|` | `qwen2.5-coder:3b` | Default family |
+| **deepseek** | `\|fim_begin\|...\|fim_hole\|...\|fim_end\|` | `deepseek-coder-v2:lite-instruct` | |
+| **gemma** | `\|fim_prefix\|...\|fim_middle\|...\|fim_suffix\|` | `gemma3:latest` | |
 | **mistral** | SPM `[PREFIX]...[SUFFIX]...` | `codestral:latest` | Raw mode |
 | **ministral** | SPM `[PREFIX]...[SUFFIX]...` | `ministral-3b-latest` | Instruction fallback |
-| **rnj-1** | `<|pre_fim|>...<|suf_fim|>...<|mid_fim|>` | `rnj-1:8b-cloud` | Local only; no longer on Ollama Cloud |
+| **rnj-1** | `\|pre_fim\|...\|suf_fim\|...\|mid_fim\|` | `rnj-1:8b-cloud` | Local only; no longer on Ollama Cloud |
 
 ## Requirements
 
