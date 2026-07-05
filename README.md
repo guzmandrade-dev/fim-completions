@@ -40,15 +40,15 @@ A minimal VS Code extension that provides inline (ghost-text) code completions u
 
 ## Setup (OpenAI-compatible provider)
 
-Example for Together AI using Qwen2.5-Coder:
+Example for Together AI using Qwen3.5-9B:
 
 ```json
 {
   "fim.backend": "openai",
-  "fim.apiUrl": "https://api.together.ai/v1",
-  "fim.apiPath": "/completions",
+  "fim.apiUrl": "https://api.together.xyz/v1",
+  "fim.apiPath": "/chat/completions",
   "fim.model": "qwen",
-  "fim.modelId": "Qwen/Qwen2.5-Coder-7B-Instruct"
+  "fim.modelId": "Qwen/Qwen3.5-9B"
 }
 ```
 

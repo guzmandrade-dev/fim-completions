@@ -53,8 +53,8 @@ export function activate(context: vscode.ExtensionContext): void {
     async () => {
       const currentEnvKey = process.env.OLLAMA_API_KEY;
       const promptMessage = currentEnvKey
-        ? "Enter API key for Ollama FIM (press Enter without typing to use environment variable OLLAMA_API_KEY):"
-        : "Enter API key for Ollama FIM:";
+        ? "Enter API key for your FIM provider (press Enter without typing to use environment variable OLLAMA_API_KEY):"
+        : "Enter API key for your FIM provider:";
 
       const apiKey = await vscode.window.showInputBox({
         prompt: promptMessage,
@@ -68,8 +68,8 @@ export function activate(context: vscode.ExtensionContext): void {
         await setApiKey(context.secrets, apiKey);
         vscode.window.showInformationMessage(
           apiKey
-            ? "Ollama FIM: API key has been set."
-            : "Ollama FIM: Using OLLAMA_API_KEY from environment.",
+            ? "FIM Completions: API key has been set."
+            : "FIM Completions: Using OLLAMA_API_KEY from environment.",
         );
       }
     },
@@ -81,7 +81,7 @@ export function activate(context: vscode.ExtensionContext): void {
     async () => {
       await clearApiKey(context.secrets);
       vscode.window.showInformationMessage(
-        "Ollama FIM: API key has been cleared. Using OLLAMA_API_KEY from environment if available.",
+        "FIM Completions: API key has been cleared. Using OLLAMA_API_KEY from environment if available.",
       );
     },
   );
