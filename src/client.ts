@@ -18,6 +18,7 @@ interface GenerateRequest {
     temperature?: number;
     stop?: string[];
     seed?: number;
+    sendSeed?: boolean;
   };
 }
 
@@ -211,6 +212,7 @@ export async function fetchGenerate(
   }
 
   const seed = req.options?.seed ?? Math.floor(Math.random() * 1_000_000);
+  const sendSeed = req.options?.sendSeed ?? true;
 
   let body: Record<string, unknown>;
 
@@ -221,8 +223,10 @@ export async function fetchGenerate(
       max_tokens: req.options?.max_tokens ?? req.options?.num_predict ?? 64,
       temperature: req.options?.temperature ?? 0.1,
       stop: getStopTokens(modelType, backend),
-      seed,
     };
+    if (sendSeed) {
+      body.seed = seed;
+    }
     if (hasSuffix) {
       body.suffix = req.suffix;
     }
@@ -232,8 +236,10 @@ export async function fetchGenerate(
       num_predict: req.options?.num_predict ?? 64,
       temperature: req.options?.temperature ?? 0.1,
       stop: getStopTokens(modelType, backend),
-      seed,
     };
+    if (sendSeed) {
+      options.seed = seed;
+    }
 
     body = {
       model: req.model,

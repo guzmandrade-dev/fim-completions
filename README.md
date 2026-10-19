@@ -54,6 +54,24 @@ Example for Together AI using Qwen3.5-9B:
 
 Set an API key with the **FIM Completions: Set API Key** command, or use the `OLLAMA_API_KEY` environment variable.
 
+## Setup (Mistral Codestral FIM endpoint)
+
+Codestral's dedicated FIM endpoint rejects the per-request `seed` field with HTTP 422 ("Extra inputs are not permitted"), so disable `fim.sendSeed` when using it:
+
+```json
+{
+  "fim.backend": "openai",
+  "fim.apiUrl": "https://codestral.mistral.ai/v1",
+  "fim.apiPath": "/fim/completions",
+  "fim.model": "mistral",
+  "fim.modelId": "codestral-latest",
+  "fim.sendSeed": false,
+  "fim.maxTokens": 64
+}
+```
+
+Set your Mistral API key with the **FIM Completions: Set API Key** command.
+
 ## Extension Settings
 
 | Setting | Type | Default | Description |
@@ -63,6 +81,7 @@ Set an API key with the **FIM Completions: Set API Key** command, or use the `OL
 | `fim.apiUrl` | `string` | `http://localhost:11434` | Base URL of the API endpoint |
 | `fim.apiPath` | `string` | (backend default) | Custom API path. `/api/generate` or `/v1/completions` if empty |
 | `fim.maxTokens` | `number` | `64` | Maximum tokens to generate per completion |
+| `fim.sendSeed` | `boolean` | `true` | Send a per-request seed. Disable for providers that reject the field (e.g. Mistral Codestral FIM, HTTP 422) |
 | `fim.model` | `enum` | `qwen` | Model family (qwen, deepseek, gemma, mistral, ministral, rnj-1) |
 | `fim.modelId` | `string` | (from family) | Specific model ID to use |
 | `fim.includeFileContext` | `boolean` | `false` | Include imports/definitions in the prompt |
@@ -99,6 +118,11 @@ npm test
 Open this folder in VS Code and press **F5** to launch the Extension Development Host. Open any file, start typing, and ghost-text completions should appear if your backend is running and `fim.model` is set.
 
 ## Release Notes
+
+### 0.5.0
+
+- Added `fim.sendSeed` setting (default `true`). Set it to `false` for providers that reject the `seed` field in completion payloads, such as the Mistral Codestral FIM endpoint, which returns HTTP 422 "Extra inputs are not permitted" when it is present
+- Documented a Codestral FIM endpoint configuration example
 
 ### 0.4.0
 

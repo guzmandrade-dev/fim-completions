@@ -108,6 +108,78 @@ describe("client", () => {
     });
   });
 
+  describe("fetchGenerate sendSeed", () => {
+    it("omits seed from the openai payload when sendSeed is false", async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({ choices: [{ text: "completion" }] }),
+      } as Response);
+
+      await fetchGenerate(
+        "https://codestral.mistral.ai/v1",
+        "/fim/completions",
+        "openai",
+        {
+          model: "codestral-latest",
+          prefix: "pre",
+          suffix: "suf",
+          modelType: "mistral",
+          options: { max_tokens: 64, sendSeed: false },
+        },
+      );
+
+      const [, init] = fetchMock.mock.calls[0];
+      const body = JSON.parse(init!.body as string);
+      expect(body.seed).toBeUndefined();
+      expect(body.prompt).toBe("<s>[SUFFIX]suf[PREFIX]pre");
+    });
+
+    it("sends seed in the openai payload by default", async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({ choices: [{ text: "completion" }] }),
+      } as Response);
+
+      await fetchGenerate(
+        "https://api.together.xyz/v1",
+        "/completions",
+        "openai",
+        {
+          model: "Qwen/Qwen2.5-Coder-7B-Instruct",
+          prefix: "pre",
+          modelType: "qwen",
+        },
+      );
+
+      const [, init] = fetchMock.mock.calls[0];
+      const body = JSON.parse(init!.body as string);
+      expect(typeof body.seed).toBe("number");
+    });
+
+    it("omits seed from the ollama payload when sendSeed is false", async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({ response: "completion" }),
+      } as Response);
+
+      await fetchGenerate(
+        "http://localhost:11434",
+        "/api/generate",
+        "ollama",
+        {
+          model: "qwen2.5-coder:3b",
+          prefix: "pre",
+          modelType: "qwen",
+          options: { num_predict: 64, sendSeed: false },
+        },
+      );
+
+      const [, init] = fetchMock.mock.calls[0];
+      const body = JSON.parse(init!.body as string);
+      expect(body.options.seed).toBeUndefined();
+    });
+  });
+
   describe("fetchGenerate openai backend", () => {
     it("sends OpenAI-style completions payload", async () => {
       fetchMock.mockResolvedValue({

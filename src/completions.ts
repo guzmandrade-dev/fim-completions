@@ -112,6 +112,7 @@ export class FimCompletionProvider implements InlineCompletionItemProvider {
     }
 
     const maxTokens = getSetting<number>("maxTokens", 64);
+    const sendSeed = getSetting<boolean>("sendSeed", true);
 
     try {
       const apiKey = (await getApiKey(this.secretStorage))?.trim();
@@ -124,7 +125,7 @@ export class FimCompletionProvider implements InlineCompletionItemProvider {
           prefix: enrichedPrefix,
           suffix: suffix.length > 0 ? suffix : undefined,
           modelType: this.modelType,
-          options: { num_predict: maxTokens, max_tokens: maxTokens, temperature: 0.1 },
+          options: { num_predict: maxTokens, max_tokens: maxTokens, temperature: 0.1, sendSeed },
         },
         apiKey || undefined,
       );
